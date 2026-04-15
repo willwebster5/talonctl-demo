@@ -1,10 +1,10 @@
 <!-- TIER: L2/L3
      LOADED BY: Phase 3 (Classification) only
-     PURPOSE: AWS-specific FP/TP patterns with IOCs for evidence comparison.
+     PURPOSE: Box-specific FP/TP patterns with IOCs for evidence comparison.
      CRITICAL: Do NOT load during Phase 1 or Phase 2 — anti-bias boundary.
      UPDATE: Add new patterns after triage confirms FP/TP with specific evidence. -->
 
-# AWS — FP/TP Patterns
+# Box — FP/TP Patterns
 
 ## False Positive Patterns
 
@@ -13,7 +13,6 @@
 ### [active] Pattern Title
 - **Detection(s):** detection_template_name_1, detection_template_name_2
 - **Pattern:** What makes this a known FP
-- **Source account:** Account name (ID)
 - **First seen:** YYYY-MM-DD
 - **Last seen:** YYYY-MM-DD
 - **Occurrences:** ~N

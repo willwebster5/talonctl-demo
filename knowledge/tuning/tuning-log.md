@@ -1,18 +1,21 @@
-<!-- TIER: L3 | LOADED BY: on-demand during tuning sessions -->
-<!-- UPDATE: After every tuning change is applied -->
+<!-- TIER: L3
+     LOADED BY: When reviewing tuning history (Phase 5)
+     PURPOSE: Historical tuning decisions with diffs and rationale.
+     UPDATE: After every tuning change is applied. -->
 
-# Tuning Log
+# Tuning Decisions Log
 
-<!-- Format:
+Historical record of detection tuning changes. Each entry documents what was changed, why, and the before/after CQL.
+
+<!-- Add entries in reverse chronological order. Format:
+
 ## YYYY-MM-DD — resource_id
 
-**Trigger:** What prompted the tuning
+**Trigger:** What prompted the tuning — FP rate, specific pattern, etc.
 **Change:** Summary of what was modified
-**Before:** `<before CQL snippet>`
-**After:** `<after CQL snippet>`
+**Before:** `<before CQL snippet or config>`
+**After:** `<after CQL snippet or config>`
 **Alerts:** [composite_ids that triggered this]
-**Validation:** validate-query result
+**Validation:** validate-query result, plan output
 **PR:** #number
 -->
-
-(No tuning changes recorded yet)

@@ -1,36 +1,39 @@
-<!-- TIER: L2 | LOADED BY: Phase 2 (Triage) when investigating alerts -->
-<!-- UPDATE: When you discover useful CQL patterns or field gotchas -->
+<!-- TIER: L2
+     LOADED BY: Phase 2 (Triage investigation)
+     PURPOSE: Query patterns, field gotchas, NGSIEM repo mapping table.
+     UPDATE: When new investigation techniques are discovered or field behaviors change. -->
 
 # Investigation Techniques
 
-## Quick Lookups
+Query patterns and field reference for NGSIEM investigations. Loaded at Phase 2 before running investigation queries.
 
-### User Activity Timeline
-```
-#repo!=xdr_*
-| userIdentity.arn = "<ARN>" OR userPrincipalName = "<UPN>" OR actor = "<username>"
-| select([@timestamp, #Vendor, eventName, sourceIPAddress, userAgent])
-| sort(@timestamp, order=asc)
-```
+## NGSIEM Repo Mapping
 
-### IP Reputation Check
-```
-#repo!=xdr_*
-| source.ip = "<IP>" OR destination.ip = "<IP>"
-| groupBy([source.ip, destination.ip, #Vendor], function=[count(), min(@timestamp), max(@timestamp)])
-```
+<!-- Map data sources to NGSIEM repos:
 
-### Source IP Activity Spread
-```
-#repo!=xdr_*
-| source.ip = "<IP>"
-| groupBy([#Vendor, eventName], function=count())
-| sort(_count, order=desc)
-```
+| Data Source | Repo Filter | Key Fields |
+|---|---|---|
+| AWS CloudTrail | `#repo=cloudtrail` | `aws.accountId`, `userIdentity.arn` |
+| EntraID Audit | `#repo=entraid_audit` | `user.userPrincipalName` |
+-->
 
 ## Field Gotchas
 
-- **CloudTrail userIdentity:** Can be `type=AssumedRole` (role session) or `type=IAMUser` — check `arn` for the actual identity
-- **EntraID dual schema:** Sign-in logs use `userPrincipalName`, audit logs use `initiatedBy.user.userPrincipalName` — different fields for the same concept
-- **GitHub actor:** Bot accounts end with `[bot]` (e.g., `dependabot[bot]`), service accounts don't
-- **VPC Flow Logs:** `action=ACCEPT` means the security group/NACL allowed the traffic, not that a connection was established
+<!-- Document fields that behave unexpectedly:
+
+### Field Name
+- **Issue:** What goes wrong
+- **Correct usage:** How to query it properly
+- **Example:** Working CQL snippet -->
+
+## Query Patterns
+
+<!-- Add reusable investigation query patterns:
+
+### Pattern Name
+- **Use case:** When to use this pattern
+- **Query:**
+  ```
+  CQL query here
+  ```
+-->

@@ -1,22 +1,30 @@
-<!-- TIER: L2 | LOADED BY: Phase 3 (Classification) for EntraID alerts -->
-<!-- UPDATE: After every EntraID alert triage — add FP/TP patterns -->
+<!-- TIER: L2/L3
+     LOADED BY: Phase 3 (Classification) only
+     PURPOSE: EntraID-specific FP/TP patterns with IOCs for evidence comparison.
+     CRITICAL: Do NOT load during Phase 1 or Phase 2 — anti-bias boundary.
+     UPDATE: Add new patterns after triage confirms FP/TP with specific evidence. -->
 
 # EntraID — FP/TP Patterns
 
 ## False Positive Patterns
 
-### SCIM Provisioning Sync
-- **Detection:** (applies to future EntraID detections)
-- **Pattern:** `svc-scim-provisioning` generates directory sync bursts on onboarding days
-- **Identifying fields:** `initiatedBy.app.displayName` = "SCIM Connector"
-- **Action:** Exclude SCIM service principal from directory change detections
+<!-- Add FP patterns here. Format:
 
-### Marketing Team Travel Logins
-- **Detection:** (applies to future sign-in anomaly detections)
-- **Pattern:** Marketing team logs in from various IPs due to travel and third-party email tools
-- **Identifying fields:** `userPrincipalName` in marketing team, `appDisplayName` = third-party tool
-- **Action:** Use group-based risk scoring rather than hard IP blocks
+### [active] Pattern Title
+- **Detection(s):** detection_template_name_1, detection_template_name_2
+- **Pattern:** What makes this a known FP
+- **First seen:** YYYY-MM-DD
+- **Last seen:** YYYY-MM-DD
+- **Occurrences:** ~N
+- **Tuning status:** Open | Tuned (PR #N) | Accepted risk
+- **Verification IOCs:** Fields and values to check -->
 
-## True Positive Indicators
+## True Positive Patterns
 
-(No TP patterns recorded yet)
+<!-- Add TP patterns here. Format:
+
+### [TP] Pattern Title
+- **Detection(s):** detection_template_name
+- **Incident:** INC-YYYY-MMDD-NNN
+- **Pattern:** What confirms this as malicious
+- **IOCs:** Key indicators -->
