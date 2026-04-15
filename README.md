@@ -52,15 +52,7 @@ The `knowledge/` directory contains Pinnacle's environmental context, known FP/T
 
 4. **Configure credentials:**
    ```bash
-   # Create ~/.config/falcon/credentials.json
-   mkdir -p ~/.config/falcon
-   cat > ~/.config/falcon/credentials.json << 'EOF'
-   {
-     "falcon_client_id": "YOUR_CLIENT_ID",
-     "falcon_client_secret": "YOUR_CLIENT_SECRET",
-     "base_url": "US1"
-   }
-   EOF
+   talonctl auth setup
    ```
 
 5. **Validate and plan:**
@@ -68,6 +60,22 @@ The `knowledge/` directory contains Pinnacle's environmental context, known FP/T
    talonctl validate    # Check templates are valid
    talonctl plan        # See what would deploy
    ```
+
+See [GETTING_STARTED.md](GETTING_STARTED.md) for detailed onboarding instructions.
+
+## Operational Commands
+
+| Command | Description |
+|---------|-------------|
+| `talonctl auth setup` | Interactive credential setup wizard |
+| `talonctl auth check` | Verify stored credentials |
+| `talonctl health` | Detection health check (cross-reference deployed rules with alert data) |
+| `talonctl health --format json --output report.json` | Export health report as JSON |
+| `talonctl metrics update-detections --report report.json` | Update per-detection weekly CSV |
+| `talonctl metrics update-kpis --report report.json` | Update weekly KPI CSV |
+| `talonctl backup create` | Create state backup as GitHub Release |
+| `talonctl backup list` | List available backups |
+| `talonctl backup restore <tag>` | Restore from a backup |
 
 ## Detection-as-Code Lifecycle
 

@@ -20,3 +20,10 @@ Thumbs.db
 
 # Working documents
 docs/superpowers/
+
+# CI artifacts
+plan_output.txt
+production_deploy.log
+discovery_results.json
+changed_files.md
+templates_review/
