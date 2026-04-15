@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "crowdstrike": {
+      "command": "crowdstrike-mcp",
+      "args": [
+        "--allow-writes"
+      ]
+    }
+  }
+}
