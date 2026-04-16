@@ -1,0 +1,40 @@
+resource_id: crowdstrike_endpoint_claude_config_file_read
+name: CrowdStrike - Endpoint - Claude Config File Read
+rule_id: 019d69cf419b779c89d26c9706cf36e9
+description: |
+  Detects file-reading commands targeting sensitive files within .claude/ directories:
+  CLAUDE.md, memory/, settings.json, .mcp.json, credentials.
+
+  Covers native binaries (cat, more, less, head, tail, grep, strings, xxd),
+  cmd.exe builtins (type), PowerShell cmdlets (Get-Content, gc, Select-String),
+  and cross-platform interpreters (python, ruby, perl).
+
+  These files contain project architecture, persistent memory, MCP server
+  connection configs, and potentially credential material.
+severity: 30
+status: active
+mitre_attack:
+  - "Collection (TA0009):Data from Local System (T1005)"
+
+search:
+  filter: |
+    #repo=base_sensor #event_simpleName=ProcessRollup2
+    | CommandLine=/\.claude\/.*(CLAUDE\.md|memory|settings\.json|\.mcp\.json|credentials)/i
+    | FileName=/^(cat|more|less|head|tail|grep|strings|xxd|python3?|ruby|perl|cmd|powershell|pwsh)(\.exe)?$/i
+    | case {
+        // Native binaries
+        FileName=/^(cat|more|less|head|tail|grep|strings|xxd|python3?|ruby|perl)(\.exe)?$/i;
+        // cmd.exe builtins
+        FileName=/^cmd(\.exe)?$/i CommandLine=/\btype\b/i;
+        // PowerShell cmdlets
+        FileName=/^(powershell|pwsh)(\.exe)?$/i CommandLine=/\b(Get-Content|gc|Select-String)\b/i;
+    }
+    | groupBy([aid, ComputerName, UserName, event_platform, ImageFileName, CommandLine, ParentBaseFileName])
+
+  lookback: 1h10m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

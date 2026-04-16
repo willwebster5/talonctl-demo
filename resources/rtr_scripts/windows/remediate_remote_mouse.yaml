@@ -1,0 +1,8 @@
+name: remediate_remote_mouse
+description: |
+  Removes RemoteMouse application and associated files.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/remediate_remote_mouse.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

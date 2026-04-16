@@ -1,0 +1,150 @@
+# GitHub Apply Exclusions
+# Purpose: Filter out expected/benign GitHub activities to reduce noise in detections
+# Version: 1.0
+
+$schema: https://schemas.humio.com/query/v0.6.0
+resource_id: github_apply_exclusions
+name: github_apply_exclusions
+description: |
+  Function: $github_apply_exclusions()
+  Purpose: Filter out expected/benign GitHub activities from detection results (bots, merge queue, etc.).
+  Output: github.is_excluded, github.exclusion_reason
+  See queryString comments for full documentation.
+queryString: |
+    // ============================================================
+    // $github_apply_exclusions() - Activity Exclusion Filter
+    // ============================================================
+    // Filter out expected/benign GitHub activities from detection
+    // results. Identifies known bots, CI/CD service accounts, and
+    // merge queue operations to reduce false positives.
+    //
+    // Output Fields:
+    //   github.is_excluded      - Boolean flag (true if activity is excluded)
+    //   github.exclusion_reason - Human-readable reason for exclusion
+    //
+    // Exclusion Categories:
+    //   1. GitHub built-in bots (merge-queue, dependabot)
+    //   2. CI/CD accounts (github-actions, renovate)
+    //   3. Merge queue refs (gh-readonly-queue)
+    //   4. Organization-specific (customizable)
+    //   5. Repository-specific (customizable)
+    //
+    // Usage:
+    //   source_type=github | $github_apply_exclusions()
+    //   | github.is_excluded=false
+    // ============================================================
+
+    // ============================================================
+    // GitHub Activity Exclusions
+    // ============================================================
+    // Filters out expected behaviors from known bots, service accounts,
+    // and automated systems to reduce false positives in detections.
+    //
+    // CUSTOMIZATION: Update the exclusion patterns below to match your
+    // organization's specific automation and service accounts.
+    // ============================================================
+
+    // Initialize exclusion tracking
+    | github.is_excluded := false
+    | github.exclusion_reason := ""
+
+    // ============================================================
+    // CATEGORY 1: GitHub Built-in Automation
+    // ============================================================
+    // These are GitHub's native bots that perform expected operations
+
+    | case {
+        // Merge queue bot - performs automated merges to protected branches
+        Vendor.sender.login="github-merge-queue[bot]" |
+            github.is_excluded := true
+            | github.exclusion_reason := "GitHub merge queue automation" ;
+        * ;
+    }
+
+    | case {
+        // Dependabot - automated dependency updates
+        Vendor.sender.login="dependabot[bot]" |
+            github.is_excluded := true
+            | github.exclusion_reason := "Dependabot automated updates" ;
+        * ;
+    }
+
+    // ============================================================
+    // CATEGORY 2: CI/CD Service Accounts
+    // ============================================================
+    // Add your organization's CI/CD bot accounts here
+    // Examples: github-actions[bot], jenkins, circleci, etc.
+
+    | case {
+        // GitHub Actions bot
+        Vendor.sender.login="github-actions[bot]" |
+            github.is_excluded := true
+            | github.exclusion_reason := "GitHub Actions automation" ;
+        * ;
+    }
+
+    | case {
+        // Renovate bot - dependency management
+        Vendor.sender.login="renovate[bot]" |
+            github.is_excluded := true
+            | github.exclusion_reason := "Renovate dependency automation" ;
+        * ;
+    }
+
+    // ============================================================
+    // CATEGORY 3: Merge Queue Activity Detection
+    // ============================================================
+    // Merge queue refs indicate automated merge operations
+
+    | case {
+        Vendor.ref=/gh-readonly-queue/ |
+            github.is_excluded := true
+            | github.exclusion_reason := "Merge queue automated branch" ;
+        * ;
+    }
+
+    // ============================================================
+    // CATEGORY 4: Organization-Specific Exclusions
+    // ============================================================
+    // CUSTOMIZE: Add your service accounts and automation users below
+    //
+    // Example patterns to add:
+    // | case {
+    //     Vendor.sender.login="your-deploy-bot" |
+    //         github.is_excluded := true
+    //         | github.exclusion_reason := "Deployment automation" ;
+    //     * ;
+    // }
+    //
+    // | case {
+    //     Vendor.sender.login=/^svc-/ |
+    //         github.is_excluded := true
+    //         | github.exclusion_reason := "Service account prefix match" ;
+    //     * ;
+    // }
+    //
+    // | case {
+    //     Vendor.repository.name="infrastructure-as-code" Vendor.sender.login="terraform-cloud[bot]" |
+    //         github.is_excluded := true
+    //         | github.exclusion_reason := "Terraform automation on IaC repo" ;
+    //     * ;
+    // }
+
+    // ============================================================
+    // CATEGORY 5: Repository-Specific Exclusions
+    // ============================================================
+    // Some repositories may have expected behaviors that differ
+    //
+    // Example: Test/sandbox repos where force pushes are normal
+    // | case {
+    //     Vendor.repository.name=/^(test-|sandbox-|playground-)/ |
+    //         github.is_excluded := true
+    //         | github.exclusion_reason := "Test/sandbox repository" ;
+    //     * ;
+    // }
+_search_domain: all
+labels:
+  - github
+  - exclusions
+  - tuning
+  - enrichment

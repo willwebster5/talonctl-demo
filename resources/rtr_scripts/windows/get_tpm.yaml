@@ -1,0 +1,8 @@
+name: get_tpm
+description: |
+  Gets TPM (Trusted Platform Module) status and version information.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/get_tpm.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

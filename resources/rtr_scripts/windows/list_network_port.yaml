@@ -1,0 +1,8 @@
+name: list_network_port
+description: |
+  Lists listening and established TCP/UDP connections with owning process.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_network_port.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

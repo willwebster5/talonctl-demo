@@ -1,0 +1,8 @@
+name: list_scheduled_task
+description: |
+  Lists Windows scheduled tasks with status, triggers, and actions.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_scheduled_task.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

@@ -1,0 +1,15 @@
+tool_name,process_pattern,category,status,notes
+Claude Desktop,Claude,ide,approved,Sanctioned AI IDE
+Claude Code,claude,cli,approved,Sanctioned CLI
+GitHub Copilot,Code Helper,ide_extension,approved,Business tier via VS Code
+ChatGPT Desktop,ChatGPT,ide,approved,Sanctioned via SASE policy group
+Cursor,Cursor,ide,unapproved,MCP-capable IDE
+Windsurf,Windsurf,ide,unapproved,MCP-capable IDE (Codeium)
+Kiro,Kiro,ide,unapproved,AWS AI IDE
+Amazon Q,amazon-q,cli,unapproved,AWS AI CLI
+Tabnine,TabNine,ide_extension,unapproved,AI code completion
+Cody,cody-engine,ide_extension,unapproved,Sourcegraph AI
+crowdstrike-mcp,crowdstrike-mcp,mcp_server,approved,CrowdStrike MCP server
+github-mcp,@github/github-mcp-server,mcp_server,approved,Approved remote MCP
+atlassian-mcp,atlassian-mcp-server,mcp_server,approved,Approved remote MCP
+figma-mcp,figma-mcp-server,mcp_server,approved,Approved remote MCP

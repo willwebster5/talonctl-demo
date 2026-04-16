@@ -1,0 +1,8 @@
+name: list_firewall_profile
+description: |
+  Lists Windows Firewall profile settings (domain/private/public).
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_firewall_profile.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

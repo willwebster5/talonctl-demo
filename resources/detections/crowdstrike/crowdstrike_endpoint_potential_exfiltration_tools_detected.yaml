@@ -1,0 +1,68 @@
+# Generated from CrowdStrike template: 59c7e6b7-841a-4909-939d-70ca8fd239d3
+# Original name: CrowdStrike - Endpoint - Potential Exfiltration Tools Detected
+# Generated on: 2025-09-12
+
+
+resource_id: crowdstrike_endpoint_potential_exfiltration_tools_detected
+name: CrowdStrike - Endpoint - Potential Exfiltration Tools Detected
+template_id: 59c7e6b7-841a-4909-939d-70ca8fd239d3
+description: |
+  This rule detects tools commonly used by threat actors to archive files and exfiltrate data out of compromised environments.
+
+tuning_notes:
+  - date: 2026-02-26
+    analyst: wwebster
+    alert_id: "bf7f666a6cb8419ea851663ecef09c24:ngsiem:bf7f666a6cb8419ea851663ecef09c24:1e94e4307ea44c6db680c2da458b8162"
+    classification: false_positive
+    change: "Excluded WinRAR executions where ParentBaseFileName is explorer.exe"
+    rationale: "Interactive WinRAR launches from Explorer (double-click to open/extract a zip) are not exfiltration. Scripted/automated exfiltration would use a non-interactive parent (cmd, powershell, etc.). FP triggered by analyst opening falconpy-main(2).zip from Downloads."
+
+severity: 50  # Medium
+status: active
+mitre_attack: ["Exfiltration (TA0010):Exfiltration Over Alternative Protocol (T1048)", "Collection (TA0009):Archive Collected Data: Archive via Utility (T1560.001)"]
+metadata:
+  created: 2025-08-14
+  last_tuned: 2026-02-26
+  tune_count: 1
+  confidence: medium
+
+ads:
+  goal: "Detect endpoint execution of archive/transfer utilities commonly used by threat actors to stage and exfiltrate data — WinRAR, WinSCP, rclone, MEGAsync, FileZilla."
+  mitre_attack:
+    - "Exfiltration / Exfiltration Over Alternative Protocol"
+    - "Collection / Archive Collected Data: Archive via Utility"
+  strategy_abstract: |
+    Filters base_sensor ProcessRollup2 events for executions of a fixed
+    utility list (WinRAR, WinSCP, rclone, mega-desktop-app, filezilla) on
+    Windows (rclone also on Linux). Suppresses WinRAR launched by
+    explorer.exe to exclude interactive double-click opens of .zip files.
+    Groups by aid + user + host + source IP + parent/image/command-line.
+  blind_spots:
+    - "Fixed utility allow-list — renamed binaries, portable executables with altered ImageFileName, or alternative archivers (7zip, PeaZip) are invisible"
+    - "WinRAR suppression on ParentBaseFileName=explorer.exe means any attacker who launches WinRAR through Explorer (Run dialog, drag-drop) bypasses detection"
+    - "No content-based signal — the detection does not inspect command-line flags, target paths, or transferred byte volume, so a legitimate one-off compression looks identical to prep-for-exfil"
+    - "No baseline — first-time user of WinRAR and routine daily user both trigger the same way"
+  priority_rationale: "Medium (50) — tool-presence is a weak indicator on its own, but the named utilities are high-fidelity enough to warrant triage; upgrading severity would require pairing with network/volume signal."
+  fp_patterns_ref: "knowledge/patterns/endpoint.md#winrar-from-explorer-exe"
+  response_ref: "playbooks/crowdstrike-endpoint.md#common-fp-patterns"
+
+search:
+  filter: |
+    #repo="base_sensor" #event_simpleName="ProcessRollup2"
+    | case {
+        event_platform="Win" ImageFileName=/WinRAR.exe/ CommandLine=/WinRAR.exe/ ParentBaseFileName!="explorer.exe";
+        event_platform="Win" ImageFileName=/WinSCP.exe/ CommandLine=/WinSCP.exe/;
+        event_platform=/(Win|Lin)/ ImageFileName=/rclone/ CommandLine=/rclone/;
+        event_platform="Win" ImageFileName=/mega-desktop-app/i CommandLine=/mega-desktop-app/i;
+        event_platform="Win" ImageFileName=/filezilla/i CommandLine=/filezilla/i
+    }
+    | groupBy([aid, UserName, ComputerName, LocalAddressIP4, ParentBaseFileName, ImageFileName, CommandLine])
+    
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+

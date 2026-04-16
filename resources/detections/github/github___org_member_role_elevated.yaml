@@ -1,0 +1,65 @@
+resource_id: github___org_member_role_elevated
+name: GitHub - Organization Member Role Elevated to Admin
+rule_id: 019d2fcc0acb7c0b8eaf235e4950698b
+description: |
+  Detects when a GitHub organization member's role is changed to admin. Org admins
+  can modify security settings, disable branch protections, access all repositories,
+  and manage billing. Admin grants should be rare and always authorized.
+
+  Risk: Full org access, security policy bypass, data exfiltration capability
+  Response: Verify the role elevation was authorized, check if the target user
+           needs admin access, review recent admin actions by the granting user
+
+severity: 50
+status: inactive
+mitre_attack: ["TA0004:T1078.004"]
+search:
+  filter: |
+    source_type=github
+    | Vendor.action="member_added"
+    | Vendor.membership.role="admin"
+
+    // Apply enrichment functions
+    | $github_enrich_event_context()
+    | $github_classify_sender_type()
+
+    // Format timestamp
+    | _TimestampET := formatTime("%Y-%m-%d %H:%M:%S ET", field=@timestamp, timezone="America/New_York")
+
+    // After-hours flag
+    | case {
+        test(github.event_hour >= 22) | _AfterHours := "Yes" ;
+        test(github.event_hour <= 6) | _AfterHours := "Yes" ;
+        * | _AfterHours := "No" ;
+    }
+
+    // Risk scoring
+    | _RiskScore := 60
+    | case {
+        _AfterHours="Yes" | _RiskScore := _RiskScore + 15 ;
+        * ;
+    }
+
+    | table([
+        _TimestampET,
+        github.actor,
+        github.actor_email,
+        github.sender_category,
+        github.organization,
+        Vendor.membership.user.login,
+        Vendor.membership.role,
+        _AfterHours,
+        _RiskScore
+    ])
+    | sort(_RiskScore, order=desc)
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+dependencies:
+  - saved_search.github_enrich_event_context
+  - saved_search.github_classify_sender_type

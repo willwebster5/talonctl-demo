@@ -1,0 +1,40 @@
+resource_id: crowdstrike_endpoint_openclaw_c2_dns_request
+name: CrowdStrike - Endpoint - OpenClaw C2 DNS Request
+rule_id: 019d3f332fd97284b11daf7727243b35
+description: |
+  Detects DNS resolution attempts to known C2 infrastructure associated with the
+  OpenClaw supply chain compromise campaigns (ClawHavoc, GhostSocks, AMOS Stealer).
+
+  OpenClaw is a self-hosted AI assistant that became a major attack surface in early
+  2026 due to rapid adoption (100K+ developers, 21K+ exposed instances). Multiple
+  campaigns exploit its plugin marketplace (ClawHub) and fake installers to deliver
+  GhostSocks proxy malware, Stealc_v2, Atomic (AMOS) Stealer, and GhostClaw RAT.
+
+  C2 domains monitored:
+  - trackpipe.dev — C2 for multiple malicious GitHub repos and ClawHub skills
+  - socifiapp.com — AMOS stealer C2, exfiltrates Keychain/browser creds
+
+  References:
+  - Huntress: Fake OpenClaw Installers Spread GhostSocks Malware
+  - Trend Micro: Malicious OpenClaw Skills Distribute Atomic macOS Stealer
+  - MITRE ATLAS: OpenClaw Investigation (PR-26-00176-1)
+  - Antiy: ClawHavoc Large-Scale Poisoning Campaign
+
+severity: 90  # Critical
+status: active
+mitre_attack: ["Command and Control (TA0011):Application Layer Protocol (T1071)", "Initial Access (TA0001):Supply Chain Compromise (T1195.002)"]
+
+search:
+  filter: |
+    #repo="base_sensor"
+    | in(#event_simpleName, values=["DnsRequest", "SuspiciousDnsRequest"])
+    | DomainName=/(?:trackpipe\.dev|socifiapp\.com)/i
+    | table([@timestamp, aid, ComputerName, UserName, DomainName, ContextBaseFileName, SHA256HashData], limit=200)
+
+  lookback: 1h10m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

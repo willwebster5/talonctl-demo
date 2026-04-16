@@ -1,0 +1,14 @@
+resource_id: cc_lookup
+name: cc_lookup.csv
+description: |
+  ISO 3166-1 country code lookup table — 261 entries.
+  Columns: char (flag emoji), name, region_name, sub_region_name,
+           ISO3166-1-Alpha-2, ISO3166-1-Alpha-3, tld
+  Use to enrich geo fields (e.g. country code from IP geolocation events) with
+  full country name, region, and sub-region. Key join field: ISO3166-1-Alpha-2.
+  Example:
+    | match(file="cc_lookup.csv", field=country_code, column="ISO3166-1-Alpha-2")
+  Source: CQL-Queries (open-source review, 2026-03-19)
+format: csv
+source: resources/lookup_files/crowdstrike/cc_lookup.csv
+_search_domain: all

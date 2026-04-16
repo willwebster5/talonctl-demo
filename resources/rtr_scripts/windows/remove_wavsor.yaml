@@ -1,0 +1,8 @@
+name: remove_wavsor
+description: |
+  Removes wavsor malware files and persistence mechanisms.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/remove_wavsor.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

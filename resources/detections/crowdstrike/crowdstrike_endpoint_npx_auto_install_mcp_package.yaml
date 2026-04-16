@@ -1,0 +1,30 @@
+resource_id: crowdstrike_endpoint_npx_auto_install_mcp_package
+name: CrowdStrike - Endpoint - npx Auto-Install of MCP Package
+rule_id: 019d6656b98f7fa3a4153a12788a93e6
+description: |
+  Detects npx -y (auto-install) of packages containing "mcp" in the name.
+  This is the highest supply chain risk vector for MCP servers: npx -y
+  auto-installs unvetted npm packages without review, vulnerable to
+  typosquatting and malicious packages.
+
+  CVE-2025-6514 (CVSS 9.6) affected 437k+ downloads. 76 confirmed
+  malicious MCP packages found in 2026.
+
+  Approved MCP servers: approved_ai_tools.csv (category=mcp_server).
+severity: 50
+status: active
+mitre_attack: ["TA0002:T1059.007", "TA0001:T1195.002"]
+search:
+  filter: |
+    #repo=base_sensor #event_simpleName=ProcessRollup2
+    | FileName=/(npx|npx\.cmd|npx\.exe)/i
+    | CommandLine=/npx\s+(-y|--yes)\s+.*mcp/i
+    | groupBy([aid, ComputerName, UserName, event_platform, ImageFileName, CommandLine, ParentBaseFileName])
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

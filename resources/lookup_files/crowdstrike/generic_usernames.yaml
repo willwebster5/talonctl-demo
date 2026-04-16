@@ -1,0 +1,14 @@
+resource_id: generic_usernames
+name: generic_usernames.csv
+description: |
+  Generic/shared account names for compliance detection (ISO 27001, SOC2).
+  Columns: username, type. ~357 entries across categories: Administrative,
+  Application/Database, Cloud/OS, Development/Test, Network/Hardware,
+  System/Service, User/Guest, Departmental/Support, General Generic.
+  Use to flag shared/generic account usage in authentication events.
+  Example:
+    | match(file="generic_usernames.csv", field=UserName, column="username", strict=false)
+  Source: Query-Hub (open-source review, 2026-03-20)
+format: csv
+source: resources/lookup_files/crowdstrike/generic_usernames.csv
+_search_domain: all

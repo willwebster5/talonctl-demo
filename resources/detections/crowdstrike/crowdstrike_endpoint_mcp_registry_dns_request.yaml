@@ -1,0 +1,27 @@
+resource_id: crowdstrike_endpoint_mcp_registry_dns_request
+name: CrowdStrike - Endpoint - MCP Registry DNS Request
+rule_id: 019d6656b9867fa389bdd422fc57e805
+description: |
+  Detects DNS lookups to MCP server registries and marketplaces. These sites
+  host thousands of community MCP servers with minimal vetting — browsing or
+  downloading from them indicates MCP server adoption on the endpoint.
+
+  Monitored registries: smithery.ai, glama.ai, mcp.run,
+  modelcontextprotocol.io, mcphub.io, mcpmarket.com.
+severity: 10
+status: active
+mitre_attack: ["TA0011:T1071.001"]
+search:
+  filter: |
+    #repo=base_sensor
+    | in(#event_simpleName, values=["DnsRequest", "SuspiciousDnsRequest"])
+    | DomainName=/(smithery\.ai|glama\.ai|mcp\.run|modelcontextprotocol\.io|mcphub\.io|mcpmarket\.com)/i
+    | groupBy([aid, ComputerName, UserName, ContextBaseFileName, DomainName])
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

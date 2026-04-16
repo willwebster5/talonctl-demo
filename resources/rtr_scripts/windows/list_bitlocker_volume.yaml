@@ -1,0 +1,8 @@
+name: list_bitlocker_volume
+description: |
+  Lists BitLocker encryption status for all volumes.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_bitlocker_volume.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

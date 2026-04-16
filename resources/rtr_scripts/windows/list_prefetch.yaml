@@ -1,0 +1,8 @@
+name: list_prefetch
+description: |
+  Lists Windows Prefetch files showing recently executed programs.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_prefetch.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

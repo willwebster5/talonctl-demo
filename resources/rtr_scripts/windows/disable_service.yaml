@@ -1,0 +1,8 @@
+name: disable_service
+description: |
+  Disables a specified Windows service by name.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/disable_service.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

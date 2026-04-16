@@ -1,0 +1,29 @@
+# Windows Process Investigation Script
+# Collects detailed process information during incident response
+# Platform: Windows
+# Permission: Group (shared with all RTR admins)
+
+name: windows_process_investigation
+description: |
+  Comprehensive process investigation script for Windows endpoints.
+
+  Collects:
+  - Running processes with full command lines
+  - Network connections by process
+  - Loaded DLLs and modules for suspicious processes
+  - Process parent-child relationships
+  - Services and scheduled tasks
+
+  Use during initial triage to identify suspicious processes,
+  command-and-control connections, and persistence mechanisms.
+
+  Output is formatted for easy review and can be saved for analysis.
+
+platform:
+  - windows
+
+permission_type: group
+
+file_path: ./scripts/windows_process_investigation.ps1
+
+comments_for_audit_log: IR process investigation script for Windows endpoints

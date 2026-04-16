@@ -1,0 +1,30 @@
+# Windows Network Connection Analysis Script
+# Maps active network connections to processes for C2 detection
+# Platform: Windows
+# Permission: Group (shared with all RTR admins)
+
+name: windows_network_connections
+description: |
+  Network connection analysis script for Windows endpoints.
+
+  Identifies:
+  - Active TCP connections with owning process
+  - Listening ports and associated services
+  - Established connections to external IPs
+  - DNS cache entries (recent lookups)
+  - Network statistics and anomalies
+
+  Use to detect command-and-control (C2) connections,
+  data exfiltration, and suspicious network activity.
+
+  Outputs detailed network connection map for investigation.
+  updated_by: security_team
+
+platform:
+  - windows
+
+permission_type: group
+
+file_path: ./scripts/windows_network_connections.ps1
+
+comments_for_audit_log: IR network connection analysis for Windows endpoints

@@ -1,0 +1,42 @@
+resource_id: github___force_push_detected
+name: GitHub - Force Push Detected
+description: |
+  Detects any force push by a human user. Force pushing rewrites Git history and
+  while sometimes legitimate (rebasing feature branches), it can also be used
+  to hide malicious commits or unauthorized changes. This is a lower severity
+  alert for force pushes to non-protected branches.
+
+  Risk: History modification, potential evidence tampering
+  Response: Review if force push was necessary, check commit differences,
+           verify with developer if unexpected
+
+severity: 10
+status: inactive
+mitre_attack: ["TA0005:T1578"]
+search:
+  filter: |
+    source_type=github
+    | Vendor.forced="true"
+    | Vendor.sender.type="User"
+    | Vendor.ref=*
+
+    // Extract branch name
+    | regex("refs/heads/(?<github.branch>.+)", field=Vendor.ref)
+
+    // Exclude protected branches (handled by higher severity detection)
+    | github.branch!=/(main|staging|master)$/
+
+    // Apply enrichment functions
+    | $github_enrich_event_context()
+    | $github_classify_sender_type()
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+dependencies:
+  - saved_search.github_enrich_event_context
+  - saved_search.github_classify_sender_type

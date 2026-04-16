@@ -1,0 +1,38 @@
+resource_id: crowdstrike_endpoint_claude_sensitive_file_exfil_via_network_tool
+name: CrowdStrike - Endpoint - Claude Sensitive File Exfil via Network Tool
+rule_id: 019d69cf42cd766db9a389c46a49e8ea
+description: |
+  Detects network transfer tools referencing .claude/ paths — overt exfiltration.
+
+  Covers HTTP tools (curl, wget), transfer binaries (scp, sftp, ftp, rsync),
+  cloud CLIs (aws, gsutil, az, rclone), raw sockets (nc, ncat), and PowerShell
+  cmdlets (Invoke-WebRequest, Invoke-RestMethod, iwr).
+
+  Legitimate use of network tools with .claude in the CommandLine is extremely
+  unlikely — high-confidence, high-signal detection.
+severity: 70
+status: active
+mitre_attack:
+  - "Exfiltration (TA0010):Exfiltration Over Alternative Protocol (T1048)"
+  - "Exfiltration (TA0010):Exfiltration Over Web Service (T1567)"
+
+search:
+  filter: |
+    #repo=base_sensor #event_simpleName=ProcessRollup2
+    | CommandLine=/\.claude/i
+    | FileName=/^(curl|wget|scp|sftp|ftp|rsync|aws|gsutil|az|rclone|nc|ncat|powershell|pwsh)(\.exe)?$/i
+    | case {
+        // Native binaries
+        FileName=/^(curl|wget|scp|sftp|ftp|rsync|aws|gsutil|az|rclone|nc|ncat)(\.exe)?$/i;
+        // PowerShell cmdlets
+        FileName=/^(powershell|pwsh)(\.exe)?$/i CommandLine=/\b(Invoke-WebRequest|Invoke-RestMethod|iwr)\b/i;
+    }
+    | groupBy([aid, ComputerName, UserName, event_platform, ImageFileName, CommandLine, ParentBaseFileName])
+
+  lookback: 1h10m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

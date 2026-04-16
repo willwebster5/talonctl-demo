@@ -1,0 +1,8 @@
+name: list_application
+description: |
+  Lists installed applications from registry (both 32-bit and 64-bit).
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_application.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

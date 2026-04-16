@@ -1,0 +1,64 @@
+# Behavioral detection: .claude/ config file read followed by exfiltration
+# Companion to: crowdstrike_endpoint_claude_directory_recon_to_access_or_exfil
+# Created: 2026-04-07
+
+resource_id: crowdstrike_endpoint_claude_config_access_to_exfil
+name: CrowdStrike - Endpoint - Claude Config Access to Exfil
+rule_id: 019d69cf4265766dbfe890a1117a5dfb
+description: |
+  Behavioral detection correlating two stages of .claude/ data theft:
+
+  Stage 1 (Access): File read commands targeting sensitive .claude/ files
+  (CLAUDE.md, memory/, settings.json, .mcp.json, credentials).
+
+  Stage 2 (Exfil): Archive, copy, or network transfer commands targeting
+  .claude/ paths on the same host.
+
+  Correlation window: 2 hours, sequenced (access must precede exfil).
+
+  This rule does not require prior recon — catches attackers who already know
+  the .claude/ path and go directly to read-then-exfil. Companion rule 5a
+  covers recon-first scenarios.
+severity: 70
+status: active
+type: behavioral
+mitre_attack:
+  - "Collection (TA0009):Data from Local System (T1005)"
+  - "Exfiltration (TA0010):Exfiltration Over Alternative Protocol (T1048)"
+
+search:
+  filter: |
+    correlate(
+      Access: {
+        #repo="base_sensor" #event_simpleName="ProcessRollup2"
+        | CommandLine=/\.claude\/.*(CLAUDE\.md|memory|settings\.json|\.mcp\.json|credentials)/i
+        | FileName=/^(cat|more|less|head|tail|grep|strings|xxd|python3?|ruby|perl|cmd|powershell|pwsh)(\.exe)?$/i
+      } include: [aid, ComputerName, UserName, event_platform, ImageFileName, CommandLine, ParentBaseFileName],
+      Exfil: {
+        #repo="base_sensor" #event_simpleName="ProcessRollup2"
+        | CommandLine=/\.claude/i
+        | FileName=/^(tar|zip|7z|7za|rar|cp|xcopy|robocopy|scp|rsync|curl|wget|sftp|ftp|aws|gsutil|az|rclone|nc|ncat|powershell|pwsh)(\.exe)?$/i
+        | aid <=> Access.aid
+      } include: [aid, ComputerName, UserName, event_platform, ImageFileName, CommandLine, ParentBaseFileName],
+      sequence=true,
+      within=2h,
+      globalConstraints=[aid]
+    )
+    | groupBy([Access.aid, Access.ComputerName, Access.UserName], function=[
+        collect([Access.CommandLine], limit=10),
+        collect([Access.ImageFileName], limit=5),
+        collect([Exfil.CommandLine], limit=10),
+        collect([Exfil.ImageFileName], limit=5),
+        min(Access.@timestamp, as=AccessTime),
+        min(Exfil.@timestamp, as=ExfilTime)
+      ])
+    | AccessTimestamp := formatTime("%Y-%m-%d %H:%M:%S", field=AccessTime)
+    | ExfilTimestamp := formatTime("%Y-%m-%d %H:%M:%S", field=ExfilTime)
+
+  lookback: 2h10m
+  trigger_mode: ""
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

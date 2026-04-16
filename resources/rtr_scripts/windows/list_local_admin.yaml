@@ -1,0 +1,8 @@
+name: list_local_admin
+description: |
+  Lists members of the local Administrators group.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_local_admin.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

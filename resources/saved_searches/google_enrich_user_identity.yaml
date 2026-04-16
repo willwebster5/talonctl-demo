@@ -1,0 +1,101 @@
+# Google Enrich User Identity
+# Purpose: Extract and normalize actor identity from GCP audit and Workspace events
+# Version: 1.0
+
+$schema: https://schemas.humio.com/query/v0.6.0
+resource_id: google_enrich_user_identity
+name: google_enrich_user_identity
+description: |
+  Function: $google_enrich_user_identity
+  Purpose: Extract and normalize actor identity from GCP audit and Google Workspace events.
+  Output: gcp.actor_email, gcp.actor_name, gcp.actor_identifier, gcp.actor_domain, gcp.event_source, gcp.service_name, gcp.resource_name, gcp.project_id, gcp.caller_ip, gcp.user_agent
+  See queryString comments for full documentation.
+queryString: |
+    // ============================================================
+    // $google_enrich_user_identity() - User Identity Extraction
+    // ============================================================
+    // Extract and normalize actor identity from both GCP audit and
+    // Google Workspace event structures into a unified field set.
+    //
+    // Input: GCP audit logs (#repo="3pi_google_cloud_audit_logs")
+    //        or Workspace logs (#repo="3pi_google_workspace_logs")
+    //
+    // Output Fields:
+    //   gcp.actor_email      - Normalized (lowercase) actor email
+    //   gcp.actor_name       - Display name if available
+    //   gcp.actor_identifier - Username portion (before @)
+    //   gcp.actor_domain     - Domain portion (after @)
+    //   gcp.event_source     - "gcp_audit" or "workspace"
+    //   gcp.service_name     - GCP service name or Workspace app name
+    //   gcp.resource_name    - Target resource (GCP audit only)
+    //   gcp.project_id       - GCP project ID extracted from resource name
+    //   gcp.caller_ip        - Source IP address
+    //   gcp.user_agent       - Caller user agent string
+    //
+    // Usage:
+    //   #repo="3pi_google_cloud_audit_logs" #Vendor="google"
+    //   | $google_enrich_user_identity()
+    //   | groupBy([gcp.actor_email, gcp.event_source], function=count())
+    // ============================================================
+
+    // Step 1: Determine event source (GCP vs Workspace)
+    | case {
+        #event.module="gcp" | gcp.event_source := "gcp_audit";
+        #event.module="workspace" | gcp.event_source := "workspace";
+        #repo="3pi_google_cloud_audit_logs" | gcp.event_source := "gcp_audit";
+        #repo="3pi_google_workspace_logs" | gcp.event_source := "workspace";
+        * | gcp.event_source := "unknown";
+    }
+
+    // Step 2: Extract actor email from multiple possible source fields
+    | case {
+        user.email=* | gcp.actor_email := lower(user.email);
+        Vendor.protoPayload.authenticationInfo.principalEmail=*
+            | gcp.actor_email := lower(Vendor.protoPayload.authenticationInfo.principalEmail);
+        Vendor.actor.email=* | gcp.actor_email := lower(Vendor.actor.email);
+        user.name=* user.name=/@/ | gcp.actor_email := lower(user.name);
+        * | gcp.actor_email := "unknown";
+    }
+
+    // Step 3: Extract actor display name
+    | case {
+        user.name=* | gcp.actor_name := user.name;
+        Vendor.actor.profileId=* | gcp.actor_name := Vendor.actor.profileId;
+        * | gcp.actor_name := gcp.actor_email;
+    }
+
+    // Step 4: Extract identifier and domain
+    | case {
+        gcp.actor_email=/@/ | gcp.actor_email=/^(?<gcp.actor_identifier>[^@]+)@(?<gcp.actor_domain>.+)$/;
+        gcp.actor_email!="unknown" | gcp.actor_identifier := gcp.actor_email | gcp.actor_domain := "no_domain";
+        * | gcp.actor_identifier := "unknown" | gcp.actor_domain := "unknown";
+    }
+
+    // Step 5: Extract platform-specific context
+    | case {
+        gcp.event_source="gcp_audit" |
+            gcp.service_name := service.name
+            | gcp.resource_name := Vendor.protoPayload.resourceName
+            | gcp.caller_ip := source.ip
+            | gcp.user_agent := Vendor.protoPayload.requestMetadata.callerSuppliedUserAgent;
+        gcp.event_source="workspace" |
+            gcp.service_name := Vendor.protoPayload.serviceName
+            | gcp.resource_name := ""
+            | gcp.caller_ip := source.ip
+            | gcp.user_agent := "";
+        * ;
+    }
+
+    // Step 6: Extract project ID from resource name
+    | case {
+        gcp.resource_name=/projects\/(?<gcp.project_id>[^\/]+)/ ;
+        * | gcp.project_id := "unknown";
+    }
+_search_domain: all
+labels:
+  - google
+  - gcp
+  - workspace
+  - identity
+  - enrichment
+  - user-enrichment

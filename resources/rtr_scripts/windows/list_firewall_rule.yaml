@@ -1,0 +1,8 @@
+name: list_firewall_rule
+description: |
+  Lists Windows Firewall rules with direction, action, and ports.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_firewall_rule.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

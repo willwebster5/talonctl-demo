@@ -1,0 +1,8 @@
+name: list_process
+description: |
+  Lists running processes with PID, name, path, command line, and parent process.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_process.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

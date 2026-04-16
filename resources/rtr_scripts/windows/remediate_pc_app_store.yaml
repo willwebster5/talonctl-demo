@@ -1,0 +1,8 @@
+name: remediate_pc_app_store
+description: |
+  Removes PC App Store adware — stops processes, removes files, cleans registry, with RTR logging.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/remediate_pc_app_store.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

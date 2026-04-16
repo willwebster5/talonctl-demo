@@ -1,0 +1,8 @@
+name: list_browser_history
+description: |
+  Lists recent browser history entries from Chrome, Edge, and Firefox.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_browser_history.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

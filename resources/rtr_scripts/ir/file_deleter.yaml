@@ -1,0 +1,8 @@
+name: file_deleter
+description: |
+  Deletes specified files from the endpoint during remediation.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/file_deleter.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

@@ -1,0 +1,76 @@
+resource_id: github___multiple_branch_deletions
+name: GitHub - Multiple Branch Deletions by Same User
+description: |
+  Detects when a single user deletes 3 or more branches within a 1-hour period.
+  While branch cleanup is normal, bulk deletions could indicate a compromised
+  account attempting to destroy code or an insider performing destructive actions.
+
+  Risk: Code destruction, sabotage, compromised credentials
+  Response: Contact the user to verify activity, review account access,
+           check for other suspicious actions
+  
+  # ── TUNED QUERY v1 ────────────────────────────────────────────────────────────
+  # Changes from original:
+  #   1. Added collect([github.branch]) to groupBy so alert shows WHICH branches
+  #      were deleted (collect does not support as= — use original field name)
+  #   2. Added collect([github.repository]) to show which repos were affected
+  #   3. Added min/max timestamps for temporal context (attack window)
+  #   4. Built an Event.AlertDetails field for analyst-ready output
+  #   5. Added DeletionVelocity classification for severity context
+  # ───────────────────────────────────────────────────────────────────────────────
+
+
+severity: 70
+status: active
+mitre_attack: ["TA0040:T1485"]
+search:
+  filter: |
+    source_type=github
+    | Vendor.deleted="true"
+    | Vendor.sender.login=*
+
+    // Enrich and classify BEFORE aggregation
+    | $github_enrich_event_context()
+    | $github_classify_sender_type()
+
+    // Filter to human actors only (exclude bots)
+    | github.is_human_actor=true
+
+    // Exclude protected branches (covered by github___protected_branch_deleted)
+    | NOT github.branch=/^(main|staging|master)$/
+
+    // Aggregate deletions by user and org — now with branch + repo collection
+    | groupBy([github.actor, github.organization], function=[
+        count(as=DeletionCount),
+        min(@timestamp, as=FirstDeletion),
+        max(@timestamp, as=LastDeletion),
+        count(github.repository, as=UniqueRepos, distinct=true),
+        collect([github.branch, github.repository], limit=25)
+    ])
+
+    // Threshold: 10+ branch deletions by a single human actor
+    // TUNING v2: Raised from 5 to 10 — developers routinely delete 5-9 merged feature
+    // branches in batch cleanup sessions (30d data: top devs delete 20-59 branches/month)
+    | test(DeletionCount >= 10)
+
+    // Classify deletion velocity for severity context
+    // Single-repo focus is more suspicious (targeted destruction) than multi-repo cleanup
+    | case {
+        test(DeletionCount >= 20) | DeletionVelocity := "Rapid" | _SeverityBoost := 20;
+        test(UniqueRepos <= 1)    | DeletionVelocity := "Focused" | _SeverityBoost := 30;
+        *                         | DeletionVelocity := "Elevated" | _SeverityBoost := 10;
+    }
+
+    // Build analyst-ready alert details
+    | Event.AlertDetails := format(
+        format="Deletion Velocity: %s\nBranches Deleted (%s total across %s repos):\n%s\n\nRepositories Affected:\n%s\n\nTime Window: %s → %s",
+        field=[DeletionVelocity, DeletionCount, UniqueRepos, github.branch, github.repository, FirstDeletion, LastDeletion]
+    )
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

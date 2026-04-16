@@ -1,0 +1,29 @@
+# Linux Log Collection Script
+# Collects authentication logs and suspicious activity indicators
+# Platform: Linux
+# Permission: public (shared with all RTR admins and first responders) test
+
+name: linux_log_collector
+description: |
+  Linux log collection script for incident response triage.
+
+  Collects:
+  - Recent authentication logs (last 100 entries)
+  - Failed login attempts
+  - Recently modified files in common persistence locations
+  - Active user sessions
+  - Cron jobs for current user
+
+  Use during initial investigation to identify unauthorized access,
+  suspicious logins, and potential persistence mechanisms.
+
+  Compatible with most Linux distributions (Ubuntu, CentOS, RHEL, Debian).
+
+platform:
+  - linux
+
+permission_type: public
+
+file_path: ./scripts/linux_log_collector.sh
+
+comments_for_audit_log: IR log collection script for Linux endpoints

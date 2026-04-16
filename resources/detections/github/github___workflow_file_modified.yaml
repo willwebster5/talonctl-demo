@@ -1,0 +1,84 @@
+resource_id: github___workflow_file_modified
+name: GitHub - Workflow File Modified in Default Branch
+rule_id: 019d2fcc0b107c0d88a6e98097c48b04
+description: |
+  Detects when GitHub Actions workflow files (.github/workflows/*.yml) are modified
+  in the default branch via push. Workflow modifications can inject malicious steps
+  into CI/CD pipelines, a key supply chain attack vector.
+
+  Risk: CI/CD pipeline compromise, supply chain attack, secrets exfiltration via Actions
+  Response: Review the workflow diff, verify the author is expected, check for
+           suspicious steps (curl to external URLs, base64 encoding, env var exfil)
+
+severity: 50
+status: inactive
+mitre_attack: ["TA0008:T1072"]
+search:
+  filter: |
+    source_type=github
+    | Vendor.created="false"
+    | Vendor.deleted="false"
+    | Vendor.ref=*
+    | regex("refs/heads/(?<github.branch>.+)", field=Vendor.ref)
+
+    // Apply enrichment functions
+    | $github_enrich_event_context()
+    | $github_classify_sender_type()
+
+    // Only default branch pushes (main, staging, master)
+    | github.branch=/^(main|staging|master)$/
+
+    // Check if workflow files were modified in the head commit
+    // NOTE: Field path needs verification from live research
+    | Vendor.head_commit.modified=/\.github\/workflows\//
+      OR Vendor.head_commit.added=/\.github\/workflows\//
+
+    // Filter bots -- but flag bot workflow changes too since they're unusual
+    // Keep all actors for visibility
+    | github.sender_category != "bot"
+
+    // Format timestamp
+    | _TimestampET := formatTime("%Y-%m-%d %H:%M:%S ET", field=@timestamp, timezone="America/New_York")
+
+    // After-hours flag
+    | case {
+        test(github.event_hour >= 22) | _AfterHours := "Yes" ;
+        test(github.event_hour <= 6) | _AfterHours := "Yes" ;
+        * | _AfterHours := "No" ;
+    }
+
+    // Risk scoring
+    | _RiskScore := 50
+    | case {
+        _AfterHours="Yes" | _RiskScore := _RiskScore + 15 ;
+        * ;
+    }
+
+    | _HeadCommitSummary := format("[%s] %s", field=[Vendor.head_commit.id, Vendor.head_commit.message])
+
+    | table([
+        _TimestampET,
+        github.actor,
+        github.actor_email,
+        github.sender_category,
+        github.organization,
+        github.repository,
+        github.branch,
+        Vendor.head_commit.modified,
+        Vendor.head_commit.added,
+        _HeadCommitSummary,
+        _AfterHours,
+        _RiskScore
+    ])
+    | sort(_RiskScore, order=desc)
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+dependencies:
+  - saved_search.github_enrich_event_context
+  - saved_search.github_classify_sender_type

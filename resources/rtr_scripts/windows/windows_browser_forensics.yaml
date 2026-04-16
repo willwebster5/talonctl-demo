@@ -1,0 +1,44 @@
+# Windows Browser Data Forensics Script
+# Collects browser history and bookmarks for incident response
+# Platform: Windows
+# Permission: Group (shared with all RTR admins)
+
+name: windows_browser_forensics
+description: |
+  Browser data collection script for forensic analysis on Windows endpoints.
+
+  Enumerates:
+  - Chrome browser history and bookmarks
+  - Microsoft Edge (Chromium) history and bookmarks
+  - Internet Explorer typed URLs and favorites
+  - Firefox browsing history and bookmarks
+  - Searches across all user profiles
+
+  Supports filtering by:
+  - Specific browser (Chrome, Edge, IE, Firefox, or All)
+  - Data type (History, Bookmarks, or All)
+  - Username (specific user or current user)
+  - Search term (filter results by keyword)
+
+  Use during incident response to:
+  - Identify malicious website visits
+  - Track phishing site interactions
+  - Investigate compromised user activity
+  - Detect data exfiltration indicators
+  - Analyze web-based attack vectors
+
+  Output includes user, browser type, data type, and URL data.
+  Automatically analyzes the most recently active user account.
+
+  Original Author: u/424f424f
+  Modified by: 51Ev34S
+  License: BSD 3-Clause
+
+platform:
+  - windows
+
+permission_type: group
+
+file_path: ./scripts/get_browser_data.ps1
+
+comments_for_audit_log: IR browser forensics script for Windows endpoints - collects history and bookmarks

@@ -1,0 +1,8 @@
+name: list_remote_share
+description: |
+  Lists active SMB connections to remote shares.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_remote_share.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

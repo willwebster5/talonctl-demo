@@ -1,0 +1,8 @@
+name: rtr_log_helper
+description: |
+  Reusable logging functions for RTR scripts — log creation, timestamped entries, cloud upload markers, and cleanup.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/rtr_log_helper.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

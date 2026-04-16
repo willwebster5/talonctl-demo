@@ -1,0 +1,8 @@
+name: osx_full_triage
+description: |
+  macOS full triage script — collects system info, user data, logs, and artifacts.
+platform:
+  - mac
+permission_type: public
+file_path: ./scripts/osx_full_triage.sh
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

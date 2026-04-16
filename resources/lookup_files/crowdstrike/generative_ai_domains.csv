@@ -1,0 +1,386 @@
+domain,service
+chat.openai.com,OpenAI
+chatgpt.com,OpenAI
+openai.com,OpenAI
+*.openai.com,OpenAI
+*.chatgpt.com,OpenAI
+platform.openai.com,OpenAI
+api.openai.com,OpenAI
+sora.com,OpenAI Sora
+claude.ai,Anthropic
+anthropic.com,Anthropic
+*.anthropic.com,Anthropic
+*.claude.ai,Anthropic
+console.anthropic.com,Anthropic
+api.anthropic.com,Anthropic
+gemini.google.com,Google Gemini
+*.gemini.google.com,Google Gemini
+geminiweb-pa.googleapis.com,Google Gemini
+aistudio.google.com,Google AI Studio
+generativelanguage.googleapis.com,Google Gemini API
+notebooklm.google.com,Google NotebookLM
+bard.google.com,Google Bard
+copilot.microsoft.com,Microsoft Copilot
+*.copilot.microsoft.com,Microsoft Copilot
+copilot.cloud.microsoft.com,Microsoft Copilot
+copilotstudio.microsoft.com,Microsoft Copilot Studio
+api.securitycopilot.microsoft.com,Microsoft Security Copilot
+copilot.github.com,GitHub Copilot
+*.githubcopilot.com,GitHub Copilot
+api.business.githubcopilot.com,GitHub Copilot
+api.githubcopilot.com,GitHub Copilot
+copilot-proxy.githubusercontent.com,GitHub Copilot
+copilot-telemetry.githubusercontent.com,GitHub Copilot
+deepseek.ai,DeepSeek
+*.deepseek.ai,DeepSeek
+deepseek.com,DeepSeek
+*.deepseek.com,DeepSeek
+chat.deepseek.com,DeepSeek
+api.deepseek.com,DeepSeek
+*.x.ai,Grok
+x.ai,Grok
+grok.com,Grok
+*.grok.com,Grok
+*.grok.x.ai,Grok
+grok.x.ai,Grok
+api.x.ai,Grok
+console.x.ai,Grok
+*.mistral.ai,Mistral
+mistral.ai,Mistral
+chat.mistral.ai,Mistral Le Chat
+console.mistral.ai,Mistral
+meta.ai,Meta AI
+*.meta.ai,Meta AI
+*.llama.ai,Meta Llama
+llama.ai,Meta Llama
+llama.com,Meta Llama
+*.cohere.ai,Cohere
+cohere.ai,Cohere
+cohere.com,Cohere
+*.cohere.com,Cohere
+coral.cohere.com,Cohere Coral
+*.perplexity.ai,Perplexity
+perplexity.ai,Perplexity
+*.ai21.com,AI21
+ai21.com,AI21
+*.inflection.ai,Inflection AI
+inflection.ai,Inflection AI
+*.pi.ai,Inflection Pi
+pi.ai,Inflection Pi
+ernie.baidu.com,Baidu ERNIE
+gigachat.sberbank.ru,Sber GigaChat
+*.aleph-alpha.com,Aleph Alpha
+aleph-alpha.com,Aleph Alpha
+qwen.ai,Qwen (Alibaba)
+*.qwen.ai,Qwen (Alibaba)
+chat.qwen.ai,Qwen (Alibaba)
+tongyi.aliyun.com,Tongyi Qianwen (Alibaba)
+01.ai,Yi (01.AI)
+*.01.ai,Yi (01.AI)
+platform.lingyiwanwu.com,Yi (01.AI)
+kimi.ai,Kimi (Moonshot)
+*.kimi.ai,Kimi (Moonshot)
+kimi.moonshot.cn,Kimi (Moonshot)
+moonshot.cn,Kimi (Moonshot)
+platform.moonshot.cn,Kimi (Moonshot)
+baichuan-ai.com,Baichuan
+*.baichuan-ai.com,Baichuan
+minimaxi.com,MiniMax
+*.minimaxi.com,MiniMax
+api.minimax.chat,MiniMax
+hailuoai.com,MiniMax Hailuo
+*.hailuoai.com,MiniMax Hailuo
+chatglm.cn,Zhipu ChatGLM
+*.chatglm.cn,Zhipu ChatGLM
+zhipuai.cn,Zhipu AI
+open.bigmodel.cn,Zhipu AI API
+*.character.ai,Character AI
+character.ai,Character AI
+*.poe.com,Poe
+poe.com,Poe
+venice.ai,Venice AI
+*.venice.ai,Venice AI
+*.cursor.so,Cursor
+cursor.so,Cursor
+cursor.com,Cursor
+*.cursor.com,Cursor
+windsurf.com,Windsurf (Codeium)
+*.windsurf.com,Windsurf (Codeium)
+*.codeium.com,Codeium
+codeium.com,Codeium
+*.tabnine.com,Tabnine
+tabnine.com,Tabnine
+sourcegraph.com,Sourcegraph Cody
+*.sourcegraph.com,Sourcegraph Cody
+replit.com,Replit AI
+*.replit.com,Replit AI
+augmentcode.com,Augment Code
+*.augmentcode.com,Augment Code
+cognition.ai,Devin
+*.cognition.ai,Devin
+devin.ai,Devin
+*.devin.ai,Devin
+supermaven.com,Supermaven
+*.supermaven.com,Supermaven
+continue.dev,Continue.dev
+*.continue.dev,Continue.dev
+aider.chat,Aider
+codestory.ai,CodeStory
+*.codestory.ai,CodeStory
+poolside.ai,Poolside AI
+*.poolside.ai,Poolside AI
+api.jetbrains.ai,JetBrains AI
+jetbrains.ai,JetBrains AI
+bolt.new,Bolt (StackBlitz)
+*.bolt.new,Bolt (StackBlitz)
+*.bolt.ai,Bolt
+bolt.ai,Bolt
+*.lovable.ai,Lovable
+lovable.ai,Lovable
+lovable.dev,Lovable
+*.lovable.dev,Lovable
+*.v0.dev,Vercel v0
+v0.dev,Vercel v0
+*.vercel.ai,Vercel AI
+vercel.ai,Vercel AI
+bedrock.aws.amazon.com,AWS Bedrock
+bedrock-runtime.*.amazonaws.com,AWS Bedrock
+q.us-east-1.amazonaws.com,Amazon Q
+codewhisperer.aws,Amazon CodeWhisperer
+groq.com,Groq
+*.groq.com,Groq
+console.groq.com,Groq
+api.groq.com,Groq
+fireworks.ai,Fireworks AI
+*.fireworks.ai,Fireworks AI
+api.fireworks.ai,Fireworks AI
+cerebras.ai,Cerebras
+*.cerebras.ai,Cerebras
+cloud.cerebras.ai,Cerebras
+inference.cerebras.ai,Cerebras
+modal.com,Modal
+*.modal.com,Modal
+anyscale.com,Anyscale
+*.anyscale.com,Anyscale
+*.together.ai,Together AI
+together.ai,Together AI
+*.replicate.com,Replicate
+replicate.com,Replicate
+fal.ai,Fal AI
+*.fal.ai,Fal AI
+*.deepmind.com,DeepMind
+deepmind.com,DeepMind
+*.huggingface.co,Hugging Face
+huggingface.co,Hugging Face
+*.scale.com,Scale AI
+scale.com,Scale AI
+*.assemblyai.com,AssemblyAI
+assemblyai.com,AssemblyAI
+*.forefront.ai,Forefront AI
+forefront.ai,Forefront AI
+*.gpt3.com,Forefront
+gpt3.com,Forefront
+*.stability.ai,Stability AI
+stability.ai,Stability AI
+*.midjourney.com,Midjourney
+midjourney.com,Midjourney
+*.runwayml.com,Runway
+runwayml.com,Runway
+leonardo.ai,Leonardo AI
+*.leonardo.ai,Leonardo AI
+ideogram.ai,Ideogram
+*.ideogram.ai,Ideogram
+blackforestlabs.ai,Black Forest Labs (Flux)
+*.blackforestlabs.ai,Black Forest Labs (Flux)
+klingai.com,Kling AI
+*.klingai.com,Kling AI
+lumalabs.ai,Luma AI
+*.lumalabs.ai,Luma AI
+pika.art,Pika
+*.pika.art,Pika
+heygen.com,HeyGen
+*.heygen.com,HeyGen
+descript.com,Descript
+*.descript.com,Descript
+*.dalle.ai,DALL-E
+dalle.ai,DALL-E
+*.opus.ai,Opus AI
+opus.ai,Opus AI
+civitai.com,CivitAI
+*.civitai.com,CivitAI
+tensor.art,Tensor Art
+seaart.ai,SeaArt
+*.seaart.ai,SeaArt
+nightcafe.studio,NightCafe
+openart.ai,OpenArt
+*.openart.ai,OpenArt
+getimg.ai,GetImg AI
+*.getimg.ai,GetImg AI
+magnific.ai,Magnific AI
+*.magnific.ai,Magnific AI
+pixverse.ai,PixVerse
+*.pixverse.ai,PixVerse
+viggle.ai,Viggle
+*.viggle.ai,Viggle
+genmo.ai,Genmo
+*.genmo.ai,Genmo
+kaiber.ai,Kaiber
+*.kaiber.ai,Kaiber
+*.synthesia.io,Synthesia
+synthesia.io,Synthesia
+colossyan.com,Colossyan
+*.colossyan.com,Colossyan
+d-id.com,D-ID
+*.d-id.com,D-ID
+captions.ai,Captions
+*.captions.ai,Captions
+invideo.io,InVideo
+*.invideo.io,InVideo
+veed.io,VEED
+*.veed.io,VEED
+pictory.ai,Pictory
+*.pictory.ai,Pictory
+fliki.ai,Fliki
+*.fliki.ai,Fliki
+deepbrain.io,DeepBrain
+*.deepbrain.io,DeepBrain
+elai.io,Elai
+*.elai.io,Elai
+suno.ai,Suno
+*.suno.ai,Suno
+suno.com,Suno
+*.suno.com,Suno
+udio.com,Udio
+*.udio.com,Udio
+*.elevenlabs.io,ElevenLabs
+elevenlabs.io,ElevenLabs
+murf.ai,Murf AI
+*.murf.ai,Murf AI
+play.ht,Play.ht
+resemble.ai,Resemble AI
+*.resemble.ai,Resemble AI
+aiva.ai,AIVA
+*.aiva.ai,AIVA
+lovo.ai,LOVO AI
+*.lovo.ai,LOVO AI
+wellsaidlabs.com,WellSaid Labs
+*.wellsaidlabs.com,WellSaid Labs
+riffusion.com,Riffusion
+boomy.com,Boomy
+soundraw.io,Soundraw
+mubert.com,Mubert
+loudly.com,Loudly
+*.deepl.com,DeepL
+deepl.com,DeepL
+grammarly.com,Grammarly
+*.grammarly.com,Grammarly
+*.grammarly.io,Grammarly
+glean.com,Glean
+*.glean.com,Glean
+writer.com,Writer
+*.writer.com,Writer
+tome.app,Tome
+*.tome.app,Tome
+notion.so,Notion AI
+*.notion.so,Notion AI
+otter.ai,Otter AI
+*.otter.ai,Otter AI
+fireflies.ai,Fireflies AI
+*.fireflies.ai,Fireflies AI
+tactiq.io,Tactiq
+*.tactiq.io,Tactiq
+tldv.io,tl;dv
+*.tldv.io,tl;dv
+mem.ai,Mem AI
+*.mem.ai,Mem AI
+coda.io,Coda AI
+gamma.app,Gamma
+*.gamma.app,Gamma
+beautiful.ai,Beautiful AI
+*.beautiful.ai,Beautiful AI
+typeface.ai,Typeface
+*.typeface.ai,Typeface
+hyperwriteai.com,HyperWrite
+*.hyperwriteai.com,HyperWrite
+textcortex.com,TextCortex
+*.textcortex.com,TextCortex
+simplified.com,Simplified
+designs.ai,Designs AI
+firefly.adobe.com,Adobe Firefly
+reclaim.ai,Reclaim AI
+*.reclaim.ai,Reclaim AI
+krisp.ai,Krisp AI
+*.krisp.ai,Krisp AI
+durable.co,Durable AI
+*.jasper.ai,Jasper
+jasper.ai,Jasper
+*.copy.ai,Copy AI
+copy.ai,Copy AI
+*.writesonic.com,Writesonic
+writesonic.com,Writesonic
+*.rytr.me,Rytr
+rytr.me,Rytr
+*.sudowrite.com,Sudowrite
+sudowrite.com,Sudowrite
+*.wordtune.com,Wordtune
+wordtune.com,Wordtune
+*.looka.com,Looka
+looka.com,Looka
+phind.com,Phind
+*.phind.com,Phind
+kagi.com,Kagi
+*.kagi.com,Kagi
+andi.com,Andi Search
+exa.ai,Exa AI
+*.exa.ai,Exa AI
+tavily.com,Tavily
+consensus.app,Consensus
+elicit.com,Elicit
+*.you.com,You.com
+you.com,You.com
+bardeen.ai,Bardeen
+*.bardeen.ai,Bardeen
+relevanceai.com,Relevance AI
+*.relevanceai.com,Relevance AI
+lindy.ai,Lindy AI
+*.lindy.ai,Lindy AI
+crew.ai,CrewAI
+langchain.com,LangChain
+*.langchain.com,LangChain
+smith.langchain.com,LangSmith
+dify.ai,Dify
+*.dify.ai,Dify
+coze.com,Coze (ByteDance)
+*.coze.com,Coze (ByteDance)
+botpress.com,Botpress
+*.botpress.com,Botpress
+voiceflow.com,Voiceflow
+*.voiceflow.com,Voiceflow
+n8n.io,n8n
+flowise.ai,Flowise
+*.flowise.ai,Flowise
+ollama.com,Ollama
+*.ollama.com,Ollama
+lmstudio.ai,LM Studio
+*.lmstudio.ai,LM Studio
+jan.ai,Jan AI
+*.jan.ai,Jan AI
+gpt4all.io,GPT4All
+*.gpt4all.io,GPT4All
+nomic.ai,GPT4All (Nomic)
+*.nomic.ai,GPT4All (Nomic)
+librechat.ai,LibreChat
+comfy.org,ComfyUI
+msty.app,Msty
+*.bubble.io,Bubble
+bubble.io,Bubble
+*.clickup.com,ClickUp
+clickup.com,ClickUp
+*.vista.social,Vista Social
+vista.social,Vista Social
+*.feedhive.io,FeedHive
+feedhive.io,FeedHive
+forethought.ai,Forethought AI
+*.forethought.ai,Forethought AI
+decagon.ai,Decagon AI
+*.decagon.ai,Decagon AI

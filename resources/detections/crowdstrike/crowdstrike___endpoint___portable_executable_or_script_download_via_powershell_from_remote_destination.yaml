@@ -1,0 +1,43 @@
+resource_id: crowdstrike___endpoint___portable_executable_or_script_download_via_powershell_from_remote_destination
+name: CrowdStrike - Endpoint - Portable Executable or Script Download via PowerShell
+  from Remote Destination
+description: |
+  Identifies portable executable (PE) or script files downloaded via PowerShell
+  from remote destinations. This rule correlates process, network and file events
+  from the Falcon sensor to detect such downloads, which are often used by adversaries
+  to transfer tools or malware into compromised environments.
+
+
+  
+severity: 50
+status: active
+mitre_attack: ["TA0011:T1105"]
+search:
+  filter: |
+    #repo="base_sensor" event_platform="Win"
+    | #event_simpleName =~ in(values=["NewExecutableWritten", "NewScriptWritten", "DnsRequest", "ProcessRollup2"])
+    | #event_simpleName match {
+        ProcessRollup2 => falcon_pid := TargetProcessId;
+        * => falcon_pid := ContextProcessId;    
+    }
+    | selfJoinFilter([aid, falcon_pid],
+        where=[
+            { #event_simpleName="ProcessRollup2" UserSid!="S-1-5-18" },
+            // Modify the rule to exclude additional trusted domain names specific to your environment.
+            { #event_simpleName="DnsRequest" | DomainName =~ !in(values=["*.microsoft.com", "*.azureedge.net", "*.powershellgallery.com", "*.windowsupdate.com", "dist.nuget.org", "*.digicert.com", "packages.chocolatey.org", "graph.windows.net", "aadcdn.msauth.net", "*.msftauthimages.net", "login.live.com", "aadcdn.msauthimages.net", "login.microsoftonline.com", "aadcdn.msftauth.net", "astral.sh", "releases.astral.sh", "claude.ai", "storage.googleapis.com"]) },
+            { #event_simpleName =~ in(values=["NewExecutableWritten", "NewScriptWritten"]) | FileName!= "__PSScriptPolicy*.ps1" | ContextBaseFileName =~ in(values=["powershell.exe", "pwsh.exe", "powershell_ise.exe"], ignoreCase=true) }
+        ], prefilter=true
+    )
+    | groupBy([aid, ComputerName, LocalIP, falcon_pid], 
+        function=[
+            collect([TargetFileName, DomainName, UserName, CommandLine])
+        ]
+    )
+    | TargetFileName=* DomainName=* CommandLine=*
+  lookback: 1h0m
+  trigger_mode: verbose
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

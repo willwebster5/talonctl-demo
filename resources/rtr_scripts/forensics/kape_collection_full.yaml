@@ -1,0 +1,8 @@
+name: kape_collection_full
+description: |
+  Runs KAPE (Kroll Artifact Parser and Extractor) for full forensic artifact collection.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/kape_collection_full.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

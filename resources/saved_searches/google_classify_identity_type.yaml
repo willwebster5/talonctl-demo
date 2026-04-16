@@ -1,0 +1,142 @@
+# Google Classify Identity Type
+# Purpose: Classify Google identities as human, service account, or system with risk scoring
+# Version: 1.0
+
+$schema: https://schemas.humio.com/query/v0.6.0
+resource_id: google_classify_identity_type
+name: google_classify_identity_type
+description: |
+  Function: $google_classify_identity_type
+  Purpose: Classify Google identities as human, service account, or system with risk scoring.
+  Output: gcp.identity_type, gcp.is_human, gcp.is_service_account, gcp.is_external, gcp.identity_risk_score, gcp.identity_risk_level, gcp.identity_classification
+  See queryString comments for full documentation.
+queryString: |
+    // ============================================================
+    // $google_classify_identity_type() - Identity Classification
+    // ============================================================
+    // Classify Google identities into detailed categories with risk scoring.
+    //
+    // Input: Events with Google identity enrichment ($google_enrich_user_identity)
+    //
+    // Output Fields:
+    //   gcp.identity_type          - Category (see below)
+    //   gcp.is_human               - true/false
+    //   gcp.is_service_account     - true/false
+    //   gcp.is_external            - true/false
+    //   gcp.identity_risk_score    - 0-100
+    //   gcp.identity_risk_level    - critical, high, medium, low, minimal
+    //   gcp.identity_classification - Summary: "Type: X, Human: Y, Risk: Z"
+    //
+    // Identity Types:
+    //   gcp_managed_service  - GCP-managed service agents (appspot, cloudservices, system, service-NNN@)
+    //   service_account      - User-created service accounts (*.iam.gserviceaccount.com)
+    //   workspace_admin      - Workspace admin/system accounts (admin@, postmaster@, abuse@)
+    //   human_user           - Internal domain users (@example.com — replace with your org domain)
+    //   external_user        - Non-org domain users
+    //   unknown              - Unclassified identity
+    //
+    // Usage:
+    //   #repo="3pi_google_cloud_audit_logs" #Vendor="google"
+    //   | $google_classify_identity_type()
+    //   | gcp.is_service_account!=true
+    //   | groupBy([gcp.identity_type], function=count())
+    // ============================================================
+
+    // Ensure identity is enriched first (idempotency guard)
+    | case {
+        gcp.actor_email=* ;
+        * | $google_enrich_user_identity();
+    }
+
+    // Step 1: Classify identity type
+    | case {
+        // GCP-managed service agents (highest specificity first)
+        gcp.actor_domain=/\.gserviceaccount\.com$/ |
+            case {
+                gcp.actor_email=/^service-\d+@/
+                    | gcp.identity_type := "gcp_managed_service"
+                    | gcp.is_service_account := true
+                    | gcp.is_human := false;
+                gcp.actor_domain=/appspot\.gserviceaccount\.com$/
+                    | gcp.identity_type := "gcp_managed_service"
+                    | gcp.is_service_account := true
+                    | gcp.is_human := false;
+                gcp.actor_domain=/cloudservices\.gserviceaccount\.com$/
+                    | gcp.identity_type := "gcp_managed_service"
+                    | gcp.is_service_account := true
+                    | gcp.is_human := false;
+                gcp.actor_domain=/system\.gserviceaccount\.com$/
+                    | gcp.identity_type := "gcp_managed_service"
+                    | gcp.is_service_account := true
+                    | gcp.is_human := false;
+                *
+                    | gcp.identity_type := "service_account"
+                    | gcp.is_service_account := true
+                    | gcp.is_human := false;
+            };
+
+        // Workspace admin/system accounts
+        gcp.actor_email=/^(admin|postmaster|abuse)@/
+            | gcp.identity_type := "workspace_admin"
+            | gcp.is_service_account := false
+            | gcp.is_human := true;
+
+        // Internal domain users — REPLACE with your org's email domain
+        gcp.actor_domain="example.com"
+            | gcp.identity_type := "human_user"
+            | gcp.is_service_account := false
+            | gcp.is_human := true;
+
+        // External users (has an email but not our domain)
+        gcp.actor_email!="unknown"
+            | gcp.identity_type := "external_user"
+            | gcp.is_service_account := false
+            | gcp.is_human := true;
+
+        // Unknown
+        *
+            | gcp.identity_type := "unknown"
+            | gcp.is_service_account := false
+            | gcp.is_human := false;
+    }
+
+    // Step 2: Set external flag
+    | case {
+        gcp.identity_type="external_user" | gcp.is_external := true;
+        * | gcp.is_external := false;
+    }
+
+    // Step 3: Risk scoring
+    | case {
+        gcp.identity_type="unknown" | gcp.identity_risk_score := 80;
+        gcp.identity_type="external_user" | gcp.identity_risk_score := 60;
+        gcp.identity_type="workspace_admin" | gcp.identity_risk_score := 45;
+        gcp.identity_type="human_user" | gcp.identity_risk_score := 35;
+        gcp.identity_type="service_account" | gcp.identity_risk_score := 20;
+        gcp.identity_type="gcp_managed_service" | gcp.identity_risk_score := 10;
+        * | gcp.identity_risk_score := 50;
+    }
+
+    // Step 4: Risk level
+    | case {
+        gcp.identity_risk_score >= 80 | gcp.identity_risk_level := "critical";
+        gcp.identity_risk_score >= 60 | gcp.identity_risk_level := "high";
+        gcp.identity_risk_score >= 40 | gcp.identity_risk_level := "medium";
+        gcp.identity_risk_score >= 20 | gcp.identity_risk_level := "low";
+        * | gcp.identity_risk_level := "minimal";
+    }
+
+    // Step 5: Summary
+    | gcp.identity_classification := format("Type: %s, Human: %s, Risk: %s",
+        field=[gcp.identity_type, gcp.is_human, gcp.identity_risk_level])
+_search_domain: all
+labels:
+  - google
+  - gcp
+  - workspace
+  - identity
+  - classification
+  - enrichment
+  - risk
+dependencies:
+  - saved_search.google_enrich_user_identity

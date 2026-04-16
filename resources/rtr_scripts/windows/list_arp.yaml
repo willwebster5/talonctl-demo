@@ -1,0 +1,8 @@
+name: list_arp
+description: |
+  Lists ARP cache entries (IP-to-MAC mappings).
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_arp.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

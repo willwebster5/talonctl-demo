@@ -1,0 +1,117 @@
+# GitHub Enrich Event Context
+# Purpose: Core enrichment function for all GitHub push events
+# Version: 1.0
+
+$schema: https://schemas.humio.com/query/v0.6.0
+resource_id: github_enrich_event_context
+name: github_enrich_event_context
+description: |
+  Function: $github_enrich_event_context()
+  Purpose: Core enrichment for GitHub push events - extracts actor, repository, branch, and time context.
+  Output: github.actor, github.actor_type, github.repository, github.branch, github.is_protected_branch, github.operation_type, github.is_business_hours, github.is_merge_queue
+  See queryString comments for full documentation.
+queryString: |
+    // ============================================================
+    // $github_enrich_event_context() - Push Event Enrichment
+    // ============================================================
+    // Core enrichment function for all GitHub push events. Extracts
+    // actor, repository, branch, and time context for use in
+    // downstream detections and dashboards.
+    //
+    // Output Fields:
+    //   github.actor              - Sender login name
+    //   github.actor_email         - Pusher email address
+    //   github.actor_type          - Human/Bot/Organization/Unknown
+    //   github.repository         - Repository short name
+    //   github.repository_full_name - Full owner/repo name
+    //   github.organization       - Organization login
+    //   github.repo_visibility     - Repository visibility (public/private)
+    //   github.repo_language       - Primary repository language
+    //   github.default_branch      - Repository default branch
+    //   github.branch             - Target branch extracted from ref
+    //   github.is_protected_branch  - Whether branch is protected (main/staging/master)
+    //   github.operation_type      - ForcePush/BranchDelete/BranchCreate/TagPush/NormalPush
+    //   github.event_hour          - Hour of event (HH format)
+    //   github.day_name            - Day of week name
+    //   github.is_business_hours    - Whether event occurred Mon-Fri
+    //   github.is_merge_queue - Whether activity is via merge queue
+    //
+    // Usage:
+    //   source_type=github | $github_enrich_event_context()
+    // ============================================================
+
+    // ============================================================
+    // GitHub Event Context Enrichment
+    // ============================================================
+    // Extracts and normalizes key fields from GitHub push events
+    // for use in detections and dashboards.
+    // ============================================================
+
+    // Step 1: Extract actor information
+    | github.actor := Vendor.sender.login
+    | github.actor_email := Vendor.pusher.email
+
+    // Step 2: Classify actor type
+    | case {
+        Vendor.sender.type="User" | github.actor_type := "Human" ;
+        Vendor.sender.type="Bot" | github.actor_type := "Bot" ;
+        Vendor.sender.type="Organization" | github.actor_type := "Organization" ;
+        * | github.actor_type := "Unknown" ;
+    }
+
+    // Step 3: Extract repository context
+    | github.repository := Vendor.repository.name
+    | github.repository_full_name := Vendor.repository.full_name
+    | github.organization := Vendor.organization.login
+    | github.repo_visibility := Vendor.repository.visibility
+    | github.repo_language := Vendor.repository.language
+    | github.default_branch := Vendor.repository.default_branch
+
+    // Step 4: Extract branch from ref
+    | case {
+        Vendor.ref=* | regex("refs/(?:heads|tags)/(?<github.branch>.+)", field=Vendor.ref) ;
+        * | github.branch := "unknown" ;
+    }
+
+    // Step 5: Determine if branch is protected
+    | case {
+        github.branch=/^(main|staging|master)$/ | github.is_protected_branch := true ;
+        github.branch=github.default_branch | github.is_protected_branch := true ;
+        * | github.is_protected_branch := false ;
+    }
+
+    // Step 6: Classify operation type
+    | case {
+        Vendor.forced="true" | github.operation_type := "ForcePush" ;
+        Vendor.deleted="true" | github.operation_type := "BranchDelete" ;
+        Vendor.created="true" | github.operation_type := "BranchCreate" ;
+        Vendor.ref=/refs\/tags/ | github.operation_type := "TagPush" ;
+        * | github.operation_type := "NormalPush" ;
+    }
+
+    // Step 7: Extract time context for anomaly detection
+    | github.event_hour := formatTime("%H", field=@timestamp)
+    | github.day_name := formatTime("%A", field=@timestamp)
+
+    // Step 8: Determine if within business hours (8-18 UTC, Mon-Fri)
+    | case {
+        github.day_name="Saturday" | github.is_business_hours := false ;
+        github.day_name="Sunday" | github.is_business_hours := false ;
+        * | github.is_business_hours := true ;
+    }
+    // Note: Hour-based filtering should be done in consuming queries
+    // as numeric comparison of formatted strings is not reliable
+
+    // Step 9: Check if activity is via merge queue (automated)
+    | case {
+        Vendor.ref=/gh-readonly-queue/ | github.is_merge_queue := true ;
+        github.actor=/merge-queue\[bot\]$/ | github.is_merge_queue := true ;
+        * | github.is_merge_queue := false ;
+    }
+_search_domain: all
+labels:
+  - github
+  - enrichment
+  - context
+  - push
+  - branch

@@ -1,0 +1,8 @@
+name: find_file
+description: |
+  Searches for files by name pattern across specified drives.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/find_file.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

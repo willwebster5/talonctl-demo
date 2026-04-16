@@ -1,0 +1,88 @@
+resource_id: crowdstrike_endpoint_axios_supply_chain_npm_postinstall_dropper
+name: "CrowdStrike - Endpoint - Axios Supply Chain npm postinstall Shell Execution"
+rule_id: 019d4bb453fb7b05acd10c55b5a775e4
+description: |
+  Detects node/npm spawning suspicious shell processes consistent with the
+  axios supply chain attack postinstall dropper (plain-crypto-js@4.2.1, 2026-03-30).
+
+  The attack chain:
+    npm install axios@1.14.1 (or 0.30.4)
+    → plain-crypto-js@4.2.1 postinstall
+    → node.exe/node executes setup.js (obfuscated dropper)
+    → Platform-specific shell spawned:
+        Linux:  nohup python /tmp/ld.py &
+        macOS:  osascript (AppleScript) → /bin/zsh
+        Windows: wscript.exe *.vbs → PowerShell
+
+  This rule fires at install time — before the RAT establishes C2 — making
+  it the earliest possible detection point in the attack chain.
+
+  Note: node spawning shells is not uncommon in dev environments. Tune by
+  excluding known-safe parent paths (e.g., specific CI runner working dirs)
+  to reduce noise before enabling.
+
+  Investigation:
+  1. Identify the npm project and confirm axios 1.14.1/0.30.4 was installed
+  2. Check for RAT artifacts: /tmp/ld.py, /Library/Caches/com.apple.act.mond, %PROGRAMDATA%\wt.exe
+  3. Check for C2 connections to sfrclak.com:8000
+  4. Contain host if RAT artifacts or C2 traffic confirmed
+  5. Rotate credentials accessible from host
+  6. Downgrade axios, remove plain-crypto-js from node_modules
+
+  Pre-tuning baseline (2026-04-01): 0 hits/30d across all 4 branches. 21K+ node child
+  process events confirm telemetry coverage — node runs on ECS Fargate and one Windows
+  workstation, neither producing shell children. No exclusions needed.
+  Affected: axios@1.14.1, axios@0.30.4 via plain-crypto-js@4.2.1 setup.js dropper
+  C2: sfrclak.com:8000 | RAT artifacts: /tmp/ld.py, com.apple.act.mond, %ProgramData%\wt.exe
+  Ref: https://thehackernews.com/2026/03/axios-supply-chain-attack-pushes-cross.html
+
+severity: 70
+status: active
+mitre_attack: ["Execution (TA0002):Command and Scripting Interpreter (T1059)"]
+
+search:
+  filter: |
+    #repo="base_sensor" #event_simpleName="ProcessRollup2" #Vendor="crowdstrike"
+    | in(ParentBaseFileName, values=["node", "node.exe", "npm", "npm.cmd", "npm.ps1", "npm-cli.js"])
+    | case {
+        // Linux: nohup python /tmp/ld.py
+        CommandLine =~ /nohup.*ld\.py|python[23]?.*\/tmp\/ld\.py/i
+        | _platform := "linux"
+        | _confidence := "high"
+        ;
+        // Windows: VBScript dropper from npm
+        in(BaseFileName, values=["wscript.exe", "cscript.exe"])
+        | CommandLine =~ /\.vbs/i
+        | _platform := "windows"
+        | _confidence := "high"
+        ;
+        // macOS: AppleScript/zsh from npm with suspicious args
+        in(BaseFileName, values=["osascript", "zsh", "bash", "sh"])
+        | CommandLine =~ /plain-crypto-js|postinstall|act\.mond|applescript/i
+        | _platform := "macos"
+        | _confidence := "high"
+        ;
+        // Generic: npm spawning PowerShell (Windows, any suspicious cmdline)
+        in(BaseFileName, values=["powershell.exe", "pwsh.exe"])
+        | in(ParentBaseFileName, values=["node.exe", "npm.cmd"])
+        | CommandLine =~ /plain-crypto-js|postinstall|EncodedCommand|DownloadString/i
+        | _platform := "windows"
+        | _confidence := "medium"
+        ;
+      }
+    | host.name := ComputerName
+    | groupBy([host.name, _platform, _confidence, BaseFileName, CommandLine], limit=10000,
+        function=[
+          collect([ParentBaseFileName, UserName, SHA256HashData]),
+          count(as=hit_count)
+        ]
+      )
+
+  lookback: "1h10m"
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: false
+
+operation:
+  schedule:
+    definition: '@every 1h'

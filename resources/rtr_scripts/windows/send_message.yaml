@@ -1,0 +1,8 @@
+name: send_message
+description: |
+  Sends a popup message to the logged-in user via msg.exe.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/send_message.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

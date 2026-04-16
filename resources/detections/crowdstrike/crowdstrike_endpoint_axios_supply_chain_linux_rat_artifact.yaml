@@ -1,0 +1,65 @@
+resource_id: crowdstrike_endpoint_axios_supply_chain_linux_rat_artifact
+name: "CrowdStrike - Endpoint - Axios Supply Chain Linux RAT Artifact /tmp/ld.py"
+rule_id: 019d4bb4542d77c79bb9815051128904
+description: |
+  Detects file creation or execution of /tmp/ld.py, the Linux-platform RAT dropped
+  by the axios supply chain attack (2026-03-30). The plain-crypto-js@4.2.1 postinstall
+  dropper writes a Python RAT to /tmp/ld.py and executes it via: nohup python /tmp/ld.py &
+
+  The RAT supports: command execution, file system enumeration, shell commands,
+  payload deployment, and self-termination. C2 is sfrclak.com:8000.
+
+  This fires on both the file write event (install time) and process execution
+  (RAT actively running). Either event is high-confidence compromise.
+
+  Investigation:
+  1. Contain the host via CrowdStrike RTR immediately
+  2. Check if /tmp/ld.py is still present and running (ps aux | grep ld.py)
+  3. Kill the process and delete the artifact if found
+  4. Check network connections for sfrclak.com:8000 egress (netstat / ss -tp)
+  5. Identify which npm project triggered the install (check ~/.npm/_logs, CI build logs)
+  6. Rotate credentials accessible from the host — env vars, ~/.npmrc, ~/.aws, CI tokens
+  7. Inspect parent process tree to confirm npm/node as the dropper origin
+
+  IOC: /tmp/ld.py — Python RAT dropped by plain-crypto-js@4.2.1 (axios supply chain)
+  Execution: nohup python /tmp/ld.py & (daemonized)
+  C2: sfrclak.com:8000
+  Ref: https://thehackernews.com/2026/03/axios-supply-chain-attack-pushes-cross.html
+
+severity: 90
+status: active
+mitre_attack: ["Execution (TA0002):Command and Scripting Interpreter: Python (T1059.006)"]
+
+search:
+  filter: |
+    #repo="base_sensor" #Vendor="crowdstrike"
+    | case {
+        // File written to disk
+        in(#event_simpleName, values=["NewExecutableWritten", "ScriptFileWritten", "EngineFileWritten"])
+        | _path := TargetFileName
+        | _event_type := "file_written"
+        ;
+        // Process execution — restrict to python interpreters only
+        // (excludes ls, stat, find, file, cat, etc. checking for the artifact)
+        #event_simpleName="ProcessRollup2"
+        | ImageFileName =~ /python/i
+        | _path := CommandLine
+        | _event_type := "process_executed"
+      }
+    | _path =~ /\/tmp\/ld\.py/i
+    | host.name := ComputerName
+    | groupBy([host.name, _event_type, _path], limit=10000,
+        function=[
+          collect([ParentBaseFileName, UserName, CommandLine, SHA256HashData]),
+          count(as=hit_count)
+        ]
+      )
+
+  lookback: "1h10m"
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: false
+
+operation:
+  schedule:
+    definition: '@every 1h'

@@ -1,0 +1,8 @@
+name: list_avproduct
+description: |
+  Lists installed antivirus/security products registered with Windows Security Center.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_avproduct.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

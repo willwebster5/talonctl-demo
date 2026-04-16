@@ -1,0 +1,41 @@
+resource_id: github___force_push_to_protected_branch
+name: GitHub - Force Push to Protected Branch
+description: |
+  Detects force pushes to protected branches (main, staging, master). Force pushing
+  rewrites Git history and can be used to remove evidence of malicious commits,
+  bypass code review, or introduce unauthorized changes. This is a critical security
+  event that should be investigated immediately.
+
+  Risk: History tampering, evidence destruction, unauthorized code changes
+  Response: Review commit history before/after, verify with developer, check audit logs
+
+severity: 90
+status: active
+mitre_attack: ["TA0005:T1578"]
+metadata:
+  created: 2025-12-17
+  last_tuned: 2026-03-18
+  tune_count: 1
+  confidence: medium
+search:
+  filter: |
+    source_type=github
+    | Vendor.forced="true"
+    | Vendor.ref=*
+    | regex("refs/heads/(?<github.branch>.+)", field=Vendor.ref)
+    | github.branch=/^(main|staging|master)$/
+
+    // Apply enrichment functions
+    | $github_enrich_event_context()
+    | $github_classify_sender_type()
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+dependencies:
+  - saved_search.github_enrich_event_context
+  - saved_search.github_classify_sender_type

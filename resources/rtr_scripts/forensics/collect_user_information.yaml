@@ -1,0 +1,8 @@
+name: collect_user_information
+description: |
+  Collects detailed user account and profile information for forensic analysis.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/collect_user_information.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

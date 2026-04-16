@@ -1,0 +1,80 @@
+# Generated from CrowdStrike template: 79d801e6-1ab9-45e9-b1e8-459f9eb86d79
+# Original name: CrowdStrike - Endpoint - Discovery Activity Targeting CrowdStrike Falcon Sensor Components (Windows)
+# Generated on: 2025-09-12
+
+
+resource_id: crowdstrike_endpoint_discovery_activity_targeting_crowdstrike_falcon_sensor_components_windows
+name: CrowdStrike - Endpoint - Discovery Activity Targeting CrowdStrike Falcon Sensor Components (Windows)
+template_id: 79d801e6-1ab9-45e9-b1e8-459f9eb86d79
+description: |
+  This rule identifies anomalous discovery attempts targeting CrowdStrike Falcon Sensor components on Windows systems by comparing current activity against a 7-day historical baseline. The rule focuses on process enumeration commands, service queries, registry queries, WMI/CIM queries, and string searches targeting Falcon-related keywords. 
+  It excludes SYSTEM account activities, legitimate CrowdStrike paths and alerts on new/unusual command patterns per user. First-time alerts may occur when legitimate users perform these queries for the first time.
+
+severity: 30  # Low
+status: active
+mitre_attack: ["Discovery (TA0007):Software Discovery: Security Software Discovery (T1518.001)"]
+
+search:
+  filter: |
+    // 7-day baseline for normal Falcon discovery activity per username and process command line
+    defineTable(
+        start=7d,
+        end=70m,
+        query={
+            #repo="base_sensor" #event_simpleName="ProcessRollup2" event_platform="Win"
+            | UserSid!=/^S-1-5-18$/ // Excludes SYSTEM account activities
+            // Excludes legitimate CrowdStrike paths
+            | ImageFileName!=/\\Device\\HarddiskVolume.\\Program Files\\CrowdStrike\\/i
+            | ImageFileName!=/\\Device\\HarddiskVolume.\\Windows\\System32\\drivers\\CrowdStrike\\.*CsInstallerService\.exe/i
+            // Exclude Claude Code subprocess chain (claude.exe → bash.exe → git/gh) where the
+            // "crowd" keyword match comes from the crowdstrike-detections repo path in CommandLine,
+            // not actual sensor discovery activity.
+            | not (ParentBaseFileName=/^(claude|bash)\.exe$/i AND CommandLine=/crowdstrike.detections/i)
+            // Filter for Falcon-related keywords in command line
+            | CommandLine=/falcon|crowd|CSCOMUtils|CsInstallerService|CSAgent|CSBoot|cspcm|CSDevice|CSFirmware|CSUninstallTool|cs\*/i
+            // Filter for discovery related keywords
+            | case {
+                // CMD commands
+                CommandLine=/find |findstr|tasklist| query|driverquery|wmic.+where/i;
+                // PowerShell commands
+                CommandLine=/(?:pwsh|powershell)/i CommandLine=/Get-Service|gsv |Get-Process|g?ps |Get-WmiObject|gwmi |Get-CimInstance|gcim |Get-ItemProperty|gp |Get-ChildItem|gci |Get-Item|gi /i;
+                // WSL discovery commands
+                CommandLine=/^wsl\s+(?:find|grep|ps|pidof|service|systemctl)/;
+            }
+            | groupBy([UserSid, CommandLine], limit=max)
+        }, 
+        include=[*], 
+        name="baseline_falcon_sensor_discovery"
+        )
+    // Current Falcon discovery activity
+    | #repo="base_sensor" #event_simpleName="ProcessRollup2" event_platform="Win"
+    | UserSid!=/^S-1-5-18$/ // Excludes SYSTEM account
+    // Excludes legitimate CrowdStrike paths
+    | ImageFileName!=/\\Device\\HarddiskVolume.\\Program Files\\CrowdStrike\\/i
+    | ImageFileName!=/\\Device\\HarddiskVolume.\\Windows\\System32\\drivers\\CrowdStrike\\.*CsInstallerService\.exe/i
+    // Exclude Claude Code — see baseline section for rationale
+    | ParentBaseFileName!=/^claude\.exe$/i
+    // Filter for Falcon-related keywords in command line
+    | CommandLine=/falcon|crowd|CSCOMUtils|CsInstallerService|CSAgent|CSBoot|cspcm|CSDevice|CSFirmware|CSUninstallTool|cs\*/i
+    // Filter for discovery related keywords
+    | case {
+        // CMD commands
+        CommandLine=/find |findstr|tasklist| query|driverquery|wmic.+where/i;
+        // PowerShell commands
+        CommandLine=/(?:pwsh|powershell)/i CommandLine=/Get-Service|gsv |Get-Process|g?ps |Get-WmiObject|gwmi |Get-CimInstance|gcim |Get-ItemProperty|gp |Get-ChildItem|gci |Get-Item|gi /i;
+        // WSL discovery commands
+        CommandLine=/^wsl\s+(?:find|grep|ps|pidof|service|systemctl)/;
+    }
+    // Alert on command patterns that are new/unusual for a specific user (not seen in baseline)
+    | NOT match(file="baseline_falcon_sensor_discovery", field=[UserSid, CommandLine])
+    // Group results by endpoint and user information
+    | groupBy([aid, ComputerName, LocalIP, UserSid, UserName], function=collect([CommandLine, ImageFileName, ParentBaseFileName]))
+    
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+

@@ -1,0 +1,39 @@
+resource_id: crowdstrike_endpoint_openclaw_malicious_binary_execution
+name: CrowdStrike - Endpoint - OpenClaw Malicious Binary Execution
+rule_id: 019d3f332f6e7cdbb3c739b295750136
+description: |
+  Detects execution of known malicious binaries and file hashes associated with the
+  OpenClaw supply chain compromise campaigns.
+
+  Monitored indicators:
+  - cloudvideo.exe, svc_service.exe — GhostSocks/infostealer droppers
+  - serverdrive.exe — GhostSocks proxy malware (linked to BlackBasta ransomware)
+  - SHA256 d9f0dd48745d5be7ef74ee9f2cb4640ab310a5a7d2f2f01654e15370ac5853eb — Stealc_v2
+
+  These binaries are distributed via fake OpenClaw installers on GitHub and trojanized
+  ClawHub skill packages. GhostSocks turns compromised hosts into residential proxies,
+  previously associated with BlackBasta ransomware operations.
+
+  References:
+  - Huntress: Fake OpenClaw Installers Spread GhostSocks Malware
+  - Intel 471: OpenClaw - A Viral AI Assistant and a Magnet for Infostealer Malware
+  - JFrog: GhostClaw Unmasked
+
+severity: 90  # Critical
+status: active
+mitre_attack: ["Execution (TA0002):User Execution (T1204.002)", "Initial Access (TA0001):Supply Chain Compromise (T1195.002)"]
+
+search:
+  filter: |
+    #repo="base_sensor"
+    | #event_simpleName=ProcessRollup2
+    | (FileName=/(?:cloudvideo|svc_service|serverdrive)\.exe/i OR SHA256HashData="d9f0dd48745d5be7ef74ee9f2cb4640ab310a5a7d2f2f01654e15370ac5853eb")
+    | table([@timestamp, aid, ComputerName, UserName, FileName, CommandLine, ParentBaseFileName, SHA256HashData], limit=200)
+
+  lookback: 1h10m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

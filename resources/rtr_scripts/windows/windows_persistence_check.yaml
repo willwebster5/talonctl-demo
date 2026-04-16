@@ -1,0 +1,30 @@
+# Windows Persistence Mechanism Detection
+# Checks common persistence locations for malware and backdoors
+# Platform: Windows
+# Permission: Group (shared with all RTR admins)
+
+name: windows_persistence_check
+description: |
+  Windows persistence mechanism detection script.
+
+  Checks common persistence locations:
+  - Startup folders (all users and current user)
+  - Run/RunOnce registry keys
+  - Scheduled tasks
+  - Services (especially non-Microsoft)
+  - WMI event subscriptions
+  - AppInit DLLs
+
+  Use to identify malware persistence mechanisms,
+  backdoors, and unauthorized startup items.
+
+  Highlights suspicious entries based on common indicators.
+
+platform:
+  - windows
+
+permission_type: group
+
+file_path: ./scripts/windows_persistence_check.ps1
+
+comments_for_audit_log: IR persistence detection script for Windows endpoints

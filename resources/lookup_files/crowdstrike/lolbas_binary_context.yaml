@@ -1,0 +1,13 @@
+resource_id: lolbas_binary_context
+name: lolbas_binary_context.csv
+description: |
+  LOLBAS binary context — maps binaries to type, function, and reference URL.
+  Columns: binary, type, function, link. ~228 entries covering Binaries, Libraries,
+  OtherMSBinaries, and Scripts from the LOLBAS project.
+  Use to enrich process execution events with living-off-the-land context.
+  Example:
+    | match(file="lolbas_binary_context.csv", field=FileName, column="binary", strict=false)
+  Source: Query-Hub (open-source review, 2026-03-20)
+format: csv
+source: resources/lookup_files/crowdstrike/lolbas_binary_context.csv
+_search_domain: all

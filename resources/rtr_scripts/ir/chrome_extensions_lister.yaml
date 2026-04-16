@@ -1,0 +1,8 @@
+name: chrome_extensions_lister
+description: |
+  Lists all Chrome extensions with names, versions, and permissions for investigation.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/chrome_extensions_lister.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

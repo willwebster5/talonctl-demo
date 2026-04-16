@@ -1,0 +1,8 @@
+name: list_network_route
+description: |
+  Lists the IP routing table.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_network_route.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

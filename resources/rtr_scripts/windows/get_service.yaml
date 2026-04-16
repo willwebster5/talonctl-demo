@@ -1,0 +1,8 @@
+name: get_service
+description: |
+  Gets detailed information about a specific Windows service by name.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/get_service.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

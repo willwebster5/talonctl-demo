@@ -1,0 +1,64 @@
+# Behavioral detection: .claude/ directory enumeration followed by file access or exfil
+# Companion to: crowdstrike_endpoint_claude_directory_enumeration
+# Created: 2026-04-07
+
+resource_id: crowdstrike_endpoint_claude_directory_recon_to_access_or_exfil
+name: CrowdStrike - Endpoint - Claude Directory Recon to Access or Exfil
+rule_id: 019d69cf421e779ca3f2ade335082c4b
+description: |
+  Behavioral detection correlating two stages of .claude/ directory targeting:
+
+  Stage 1 (Recon): Enumeration commands (find, ls, dir, tree, Get-ChildItem)
+  targeting .claude/ paths.
+
+  Stage 2 (Post-Recon): File read, archive, copy, or network transfer commands
+  targeting .claude/ paths on the same host.
+
+  Correlation window: 2 hours, sequenced (recon must precede post-recon activity).
+
+  Companion rule 5b (crowdstrike_endpoint_claude_config_access_to_exfil) covers
+  the access-to-exfil combination without requiring prior recon. Together they
+  provide full 2-of-3 stage coverage.
+severity: 70
+status: active
+type: behavioral
+mitre_attack:
+  - "Discovery (TA0007):File and Directory Discovery (T1083)"
+  - "Collection (TA0009):Data from Local System (T1005)"
+
+search:
+  filter: |
+    correlate(
+      Recon: {
+        #repo="base_sensor" #event_simpleName="ProcessRollup2"
+        | CommandLine=/\.claude/i
+        | FileName=/^(find|ls|tree|locate|fd|cmd|powershell|pwsh)(\.exe)?$/i
+      } include: [aid, ComputerName, UserName, event_platform, ImageFileName, CommandLine, ParentBaseFileName],
+      PostRecon: {
+        #repo="base_sensor" #event_simpleName="ProcessRollup2"
+        | CommandLine=/\.claude/i
+        | FileName=/^(cat|more|less|head|tail|grep|strings|xxd|python3?|ruby|perl|cmd|tar|zip|7z|7za|rar|cp|xcopy|robocopy|scp|rsync|curl|wget|sftp|ftp|aws|gsutil|az|rclone|nc|ncat|powershell|pwsh)(\.exe)?$/i
+        | aid <=> Recon.aid
+      } include: [aid, ComputerName, UserName, event_platform, ImageFileName, CommandLine, ParentBaseFileName],
+      sequence=true,
+      within=2h,
+      globalConstraints=[aid]
+    )
+    | groupBy([Recon.aid, Recon.ComputerName, Recon.UserName], function=[
+        collect([Recon.CommandLine], limit=10),
+        collect([Recon.ImageFileName], limit=5),
+        collect([PostRecon.CommandLine], limit=10),
+        collect([PostRecon.ImageFileName], limit=5),
+        min(Recon.@timestamp, as=ReconTime),
+        min(PostRecon.@timestamp, as=PostReconTime)
+      ])
+    | ReconTimestamp := formatTime("%Y-%m-%d %H:%M:%S", field=ReconTime)
+    | PostReconTimestamp := formatTime("%Y-%m-%d %H:%M:%S", field=PostReconTime)
+
+  lookback: 2h10m
+  trigger_mode: ""
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

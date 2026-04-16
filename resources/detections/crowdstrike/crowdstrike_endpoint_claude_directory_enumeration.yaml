@@ -1,0 +1,41 @@
+resource_id: crowdstrike_endpoint_claude_directory_enumeration
+name: CrowdStrike - Endpoint - Claude Directory Enumeration
+rule_id: 019d69cf42a9766d8d23b4a9e3b41f8c
+description: |
+  Detects directory enumeration commands targeting .claude/ paths on endpoints.
+  Covers native binaries (find, ls, tree, locate, fd), cmd.exe builtins (dir, where),
+  and PowerShell cmdlets (Get-ChildItem, gci).
+
+  .claude/ directories contain project instructions, memory files, MCP server configs,
+  and potentially credential material. Enumeration is the first stage of a
+  recon → read → exfiltrate kill chain.
+
+  Low severity (informational) — signal improves when correlated with subsequent
+  stages via companion behavioral rules.
+severity: 10
+status: active
+mitre_attack:
+  - "Discovery (TA0007):File and Directory Discovery (T1083)"
+
+search:
+  filter: |
+    #repo=base_sensor #event_simpleName=ProcessRollup2
+    | CommandLine=/\.claude/i
+    | FileName=/^(find|ls|tree|locate|fd|cmd|powershell|pwsh)(\.exe)?$/i
+    | case {
+        // Native binaries (Linux/Mac/Windows)
+        FileName=/^(find|ls|tree|locate|fd)(\.exe)?$/i;
+        // cmd.exe builtins
+        FileName=/^cmd(\.exe)?$/i CommandLine=/\b(dir|where)\b/i;
+        // PowerShell cmdlets
+        FileName=/^(powershell|pwsh)(\.exe)?$/i CommandLine=/\b(Get-ChildItem|gci)\b/i;
+    }
+    | groupBy([aid, ComputerName, UserName, event_platform, ImageFileName, CommandLine, ParentBaseFileName])
+
+  lookback: 1h10m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

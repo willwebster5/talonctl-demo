@@ -1,0 +1,8 @@
+name: get_last_boot
+description: |
+  Gets system last boot time and uptime.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/get_last_boot.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

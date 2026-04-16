@@ -1,0 +1,13 @@
+resource_id: generative_ai_domains
+name: generative_ai_domains.csv
+description: |
+  Generative AI service domains for shadow AI detection.
+  Columns: domain, service. ~385 entries / 188 services covering chatbots, coding tools,
+  image/video/audio gen, enterprise AI, AI search, agents, inference APIs, and open-source UIs.
+  Use to detect unsanctioned GenAI usage in DNS and proxy logs.
+  Example:
+    | match(file="generative_ai_domains.csv", field=DomainName, column="domain", strict=false)
+  Source: Query-Hub baseline + web research + env DNS/SASE log analysis (2026-03-30).
+format: csv
+source: resources/lookup_files/crowdstrike/generative_ai_domains.csv
+_search_domain: all

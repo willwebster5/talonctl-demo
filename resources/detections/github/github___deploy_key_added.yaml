@@ -1,0 +1,72 @@
+resource_id: github___deploy_key_added
+name: GitHub - Deploy Key Added to Repository
+rule_id: 019d2fcc0b0c7c0ca8574cf211a0afe4
+description: |
+  Detects when a deploy key is added to a GitHub repository. Deploy keys provide
+  SSH access to repositories and persist across password changes. An attacker adding
+  a deploy key establishes persistent access that bypasses normal authentication.
+
+  Risk: Persistent unauthorized access, survives credential rotation, silent code access
+  Response: Verify the deploy key addition was authorized, check if it's associated
+           with known CI/CD automation, review the key's permissions (read-only vs read-write)
+
+severity: 50
+status: inactive
+mitre_attack: ["TA0003:T1098.001"]
+search:
+  filter: |
+    source_type=github
+    | Vendor.action="created"
+    | Vendor.key=*
+
+    // Apply enrichment functions
+    | $github_enrich_event_context()
+    | $github_classify_sender_type()
+    | $github_apply_exclusions()
+
+    // Format timestamp
+    | _TimestampET := formatTime("%Y-%m-%d %H:%M:%S ET", field=@timestamp, timezone="America/New_York")
+
+    // After-hours flag
+    | case {
+        test(github.event_hour >= 22) | _AfterHours := "Yes" ;
+        test(github.event_hour <= 6) | _AfterHours := "Yes" ;
+        * | _AfterHours := "No" ;
+    }
+
+    // Risk based on key permissions
+    | case {
+        Vendor.key.read_only="false" | _KeyPermission := "Read-Write" | _RiskScore := 70 ;
+        Vendor.key.read_only="true" | _KeyPermission := "Read-Only" | _RiskScore := 40 ;
+        * | _KeyPermission := "Unknown" | _RiskScore := 50 ;
+    }
+    | case {
+        _AfterHours="Yes" | _RiskScore := _RiskScore + 10 ;
+        * ;
+    }
+
+    | table([
+        _TimestampET,
+        github.actor,
+        github.actor_email,
+        github.sender_category,
+        github.organization,
+        github.repository,
+        Vendor.key.title,
+        _KeyPermission,
+        _AfterHours,
+        _RiskScore
+    ])
+    | sort(_RiskScore, order=desc)
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+dependencies:
+  - saved_search.github_enrich_event_context
+  - saved_search.github_classify_sender_type
+  - saved_search.github_apply_exclusions

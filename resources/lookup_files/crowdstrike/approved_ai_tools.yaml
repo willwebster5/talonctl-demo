@@ -1,0 +1,12 @@
+resource_id: approved_ai_tools
+name: approved_ai_tools.csv
+description: |
+  Approved and unapproved AI tools and MCP servers for shadow AI detection.
+  Columns: tool_name, process_pattern, category, status, notes.
+  Categories: ide, cli, ide_extension, mcp_server.
+  Use with match() then filter on status/category post-join:
+    | match(file="approved_ai_tools.csv", field=FileName, column=process_pattern, include=[tool_name, category, status], strict=false)
+    | status="unapproved"
+format: csv
+source: resources/lookup_files/crowdstrike/approved_ai_tools.csv
+_search_domain: all

@@ -1,0 +1,108 @@
+# GitHub Classify Sender Type
+# Purpose: Classify GitHub senders as human, bot, or organization with risk scoring
+# Version: 1.0
+
+$schema: https://schemas.humio.com/query/v0.6.0
+resource_id: github_classify_sender_type
+name: github_classify_sender_type
+description: |
+  Function: $github_classify_sender_type()
+  Purpose: Classify GitHub senders into detailed categories with risk scoring.
+  Output: github.sender_category, github.is_human_actor, github.sender_risk_score, github.sender_classification
+  See queryString comments for full documentation.
+queryString: |
+    // ============================================================
+    // $github_classify_sender_type() - Sender Type Classification
+    // ============================================================
+    // Classify GitHub senders into detailed categories with risk
+    // scoring. Identifies bots, service accounts, and human users
+    // for use in downstream security analysis.
+    //
+    // Output Fields:
+    //   github.sender_category       - Detailed category (merge_queue, github_actions,
+    //                          dependabot, renovate, github_system, bot,
+    //                          human_user, organization, unknown)
+    //   github.is_human_actor         - Boolean flag (true for human_user/organization)
+    //   github.sender_risk_score           - Numeric risk score (5-50)
+    //   github.sender_classification - Summary string of category/human/risk
+    //
+    // Sender Categories (risk score):
+    //   merge_queue    (5)  - GitHub merge queue bot
+    //   github_actions (10) - GitHub Actions bot
+    //   dependabot     (10) - Dependabot automated updates
+    //   renovate       (10) - Renovate dependency bot
+    //   github_system  (5)  - GitHub system account
+    //   bot            (15) - Generic bot accounts
+    //   human_user     (30) - Human user accounts
+    //   organization   (40) - Organization accounts
+    //   unknown        (50) - Unclassified senders
+    //
+    // Usage:
+    //   source_type=github | $github_classify_sender_type()
+    // ============================================================
+
+    // ============================================================
+    // GitHub Sender Type Classification
+    // ============================================================
+    // Classifies senders into human/bot categories for security analysis
+    // Assigns risk scores based on identity type
+    // ============================================================
+
+    // Step 1: Detailed sender categorization
+    | case {
+        // GitHub built-in bots
+        Vendor.sender.login="github-merge-queue[bot]" | github.sender_category := "merge_queue" ;
+        Vendor.sender.login="github-actions[bot]" | github.sender_category := "github_actions" ;
+        Vendor.sender.login="dependabot[bot]" | github.sender_category := "dependabot" ;
+        Vendor.sender.login="renovate[bot]" | github.sender_category := "renovate" ;
+        Vendor.sender.login="github" | github.sender_category := "github_system" ;
+
+        // Generic bot detection
+        Vendor.sender.login=/\[bot\]$/ | github.sender_category := "bot" ;
+        Vendor.sender.type="Bot" | github.sender_category := "bot" ;
+
+        // Organization accounts
+        Vendor.sender.type="Organization" | github.sender_category := "organization" ;
+
+        // Known org service accounts (GitHub classifies as User type but are automation)
+        Vendor.sender.login="RoadRunnerDevOps" | github.sender_category := "bot" ;
+
+        // Human users
+        Vendor.sender.type="User" | github.sender_category := "human_user" ;
+
+        // Unknown
+        * | github.sender_category := "unknown" ;
+    }
+
+    // Step 2: Determine if human actor
+    | case {
+        github.sender_category="human_user" | github.is_human_actor := true ;
+        github.sender_category="organization" | github.is_human_actor := true ;
+        * | github.is_human_actor := false ;
+    }
+
+    // Step 3: Assign risk scores based on category
+    // Lower risk for known automation, higher for humans (who can make mistakes)
+    | case {
+        github.sender_category="merge_queue" | github.sender_risk_score := 5 ;
+        github.sender_category="github_actions" | github.sender_risk_score := 10 ;
+        github.sender_category="dependabot" | github.sender_risk_score := 10 ;
+        github.sender_category="renovate" | github.sender_risk_score := 10 ;
+        github.sender_category="github_system" | github.sender_risk_score := 5 ;
+        github.sender_category="bot" | github.sender_risk_score := 15 ;
+        github.sender_category="human_user" | github.sender_risk_score := 30 ;
+        github.sender_category="organization" | github.sender_risk_score := 40 ;
+        github.sender_category="unknown" | github.sender_risk_score := 50 ;
+        * | github.sender_risk_score := 50 ;
+    }
+
+    // Step 4: Create classification summary
+    | github.sender_classification := format("Category: %s, Human: %s, Risk: %s",
+        field=[github.sender_category, github.is_human_actor, github.sender_risk_score])
+_search_domain: all
+labels:
+  - github
+  - identity
+  - classification
+  - enrichment
+  - risk

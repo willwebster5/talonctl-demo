@@ -1,0 +1,8 @@
+name: list_eventlog
+description: |
+  Lists available Windows Event Log channels and their sizes.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_eventlog.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

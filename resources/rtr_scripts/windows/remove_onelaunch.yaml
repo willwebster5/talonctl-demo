@@ -1,0 +1,8 @@
+name: remove_onelaunch
+description: |
+  Removes OneLaunch browser and associated adware components.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/remove_onelaunch.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

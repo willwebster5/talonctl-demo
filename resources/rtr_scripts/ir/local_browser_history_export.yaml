@@ -1,0 +1,8 @@
+name: local_browser_history_export
+description: |
+  Exports browser history from Chrome, Edge, Firefox for forensic analysis.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/local_browser_history_export.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

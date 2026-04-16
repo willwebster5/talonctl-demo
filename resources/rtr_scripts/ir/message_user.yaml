@@ -1,0 +1,8 @@
+name: message_user
+description: |
+  Sends a notification message to the endpoint user during incident response.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/message_user.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

@@ -1,0 +1,8 @@
+name: get_fileinfo
+description: |
+  Gets detailed file metadata including hash, timestamps, and digital signature.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/get_fileinfo.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

@@ -1,0 +1,8 @@
+name: list_browser_extension
+description: |
+  Lists browser extensions for Chrome, Edge, and Firefox.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_browser_extension.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

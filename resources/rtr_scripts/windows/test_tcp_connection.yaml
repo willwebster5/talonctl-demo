@@ -1,0 +1,8 @@
+name: test_tcp_connection
+description: |
+  Tests TCP connectivity to a specified host and port.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/test_tcp_connection.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

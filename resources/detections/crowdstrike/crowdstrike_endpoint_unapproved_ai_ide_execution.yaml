@@ -1,0 +1,31 @@
+resource_id: crowdstrike_endpoint_unapproved_ai_ide_execution
+name: CrowdStrike - Endpoint - Unapproved AI IDE Execution
+rule_id: 019d6656b9677fa39f85c191b91a1bc3
+description: |
+  Detects execution of AI-capable IDEs and tools not in the approved toolset.
+  Events not matching any case branch are silently dropped (intended).
+
+  Approved: Claude Desktop, Claude Code, GitHub Copilot (VS Code),
+  ChatGPT (browser + desktop, via SASE policy group).
+
+  Unapproved (alert): Cursor, Windsurf, Kiro, Amazon Q, Tabnine, Cody.
+  Full list: approved_ai_tools.csv (category=ide|cli|ide_extension, status=unapproved).
+severity: 30
+status: active
+mitre_attack: ["TA0002:T1204", "TA0010:T1567.002"]
+search:
+  filter: |
+    #repo=base_sensor #event_simpleName=ProcessRollup2
+    | case {
+        event_platform="Win" FileName=/^(Cursor|Windsurf|Kiro|amazon-q|TabNine|cody-engine)\.exe$/i;
+        event_platform="Mac" FileName=/(^Cursor$|^Windsurf$|^Kiro$|^amazon-q$|^TabNine$|^cody-engine$)/;
+    }
+    | groupBy([aid, ComputerName, UserName, event_platform, FileName, ImageFileName, CommandLine])
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

@@ -1,0 +1,111 @@
+# GitHub Flag Risky Operations
+# Purpose: Flag high-risk Git operations with severity scoring
+# Version: 1.0
+
+$schema: https://schemas.humio.com/query/v0.6.0
+resource_id: github_flag_risky_operations
+name: github_flag_risky_operations
+description: |
+  Function: $github_flag_risky_operations()
+  Purpose: Flag high-risk Git operations with severity scoring.
+  Output: github.risk_operation, github.operation_severity, github.risk_reason, github.risk_level, github.is_risky_operation
+  Requires: $github_enrich_event_context() called first.
+  See queryString comments for full documentation.
+queryString: |
+    // ============================================================
+    // $github_flag_risky_operations() - Risky Operation Detection
+    // ============================================================
+    // Flag high-risk Git operations with severity scoring. Evaluates
+    // operation type and branch context to assign risk levels.
+    //
+    // Output Fields:
+    //   github.risk_operation     - Operation classification name
+    //   github.operation_severity - Numeric severity (0-90)
+    //   github.risk_reason        - Human-readable risk description
+    //   github.risk_level         - none/low/medium/high/critical
+    //   github.is_risky_operation  - Boolean flag for filtering
+    //
+    // Risk Operations (severity):
+    //   ForcePushToProtected    (90) - History rewriting on protected branch
+    //   ProtectedBranchDeletion (80) - Protected branch deleted
+    //   DirectPushToProtected   (70) - Bypassed merge queue
+    //   ForcePush               (60) - History rewriting on any branch
+    //   BranchDeletion          (30) - Branch deleted
+    //   TagPush                 (10) - Tag/release created
+    //   Normal                   (0) - Normal push operation
+    //
+    // Requires: $github_enrich_event_context() called first
+    //
+    // Usage:
+    //   source_type=github | $github_enrich_event_context()
+    //   | $github_flag_risky_operations() | github.is_risky_operation=true
+    // ============================================================
+
+    // Step 1: Evaluate risk level based on operation and context
+    | case {
+        // CRITICAL: Force push to protected branch - history rewriting
+        Vendor.forced="true" github.is_protected_branch=true |
+            github.risk_operation := "ForcePushToProtected"
+            | github.operation_severity := 90
+            | github.risk_reason := "Force push to protected branch - potential history tampering"
+            | github.risk_level := "critical"
+            | github.is_risky_operation := true ;
+
+        // HIGH: Protected branch deletion - code destruction
+        Vendor.deleted="true" github.is_protected_branch=true |
+            github.risk_operation := "ProtectedBranchDeletion"
+            | github.operation_severity := 80
+            | github.risk_reason := "Protected branch deleted - potential code destruction"
+            | github.risk_level := "critical"
+            | github.is_risky_operation := true ;
+
+        // HIGH: Direct push to protected branch bypassing merge queue
+        github.is_protected_branch=true github.is_merge_queue=false Vendor.sender.type="User"
+        Vendor.created="false" Vendor.deleted="false" Vendor.forced="false" |
+            github.risk_operation := "DirectPushToProtected"
+            | github.operation_severity := 70
+            | github.risk_reason := "Direct push to protected branch - bypassed merge queue"
+            | github.risk_level := "high"
+            | github.is_risky_operation := true ;
+
+        // MEDIUM: Force push to any branch
+        Vendor.forced="true" |
+            github.risk_operation := "ForcePush"
+            | github.operation_severity := 60
+            | github.risk_reason := "Force push detected - history may be rewritten"
+            | github.risk_level := "high"
+            | github.is_risky_operation := true ;
+
+        // MEDIUM: Branch deletion
+        Vendor.deleted="true" |
+            github.risk_operation := "BranchDeletion"
+            | github.operation_severity := 30
+            | github.risk_reason := "Branch deleted"
+            | github.risk_level := "medium"
+            | github.is_risky_operation := true ;
+
+        // LOW: Tag push (release)
+        Vendor.ref=/refs\/tags/ |
+            github.risk_operation := "TagPush"
+            | github.operation_severity := 10
+            | github.risk_reason := "Tag/release created"
+            | github.risk_level := "low"
+            | github.is_risky_operation := true ;
+
+        // NORMAL: Regular operations
+        * |
+            github.risk_operation := "Normal"
+            | github.operation_severity := 0
+            | github.risk_reason := "Normal push operation"
+            | github.risk_level := "none"
+            | github.is_risky_operation := false ;
+    }
+_search_domain: all
+labels:
+  - github
+  - risk
+  - operations
+  - security
+  - enrichment
+dependencies:
+  - saved_search.github_enrich_event_context

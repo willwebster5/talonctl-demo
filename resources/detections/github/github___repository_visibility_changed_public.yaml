@@ -1,0 +1,66 @@
+resource_id: github___repository_visibility_changed_public
+name: GitHub - Repository Visibility Changed to Public
+rule_id: 019d2fcc0d7b7c0ebbc194322d8b4a7a
+description: |
+  Detects when a GitHub repository's visibility is changed from private/internal
+  to public. This exposes source code, secrets in git history, and internal tooling
+  to the internet. Should be zero in a properly configured org.
+
+  Risk: Source code exposure, credential leakage via git history, IP theft
+  Response: Immediately revert visibility to private, rotate any secrets in the
+           repo's git history, verify with the actor whether this was intentional
+
+severity: 90
+status: inactive
+mitre_attack: ["TA0010:T1567"]
+search:
+  filter: |
+    source_type=github
+    | Vendor.action="publicized"
+
+    // Apply enrichment functions
+    | $github_enrich_event_context()
+    | $github_classify_sender_type()
+    | $github_flag_risky_operations()
+
+    // Format timestamp
+    | _TimestampET := formatTime("%Y-%m-%d %H:%M:%S ET", field=@timestamp, timezone="America/New_York")
+
+    // After-hours flag
+    | case {
+        test(github.event_hour >= 22) | _AfterHours := "Yes" ;
+        test(github.event_hour <= 6) | _AfterHours := "Yes" ;
+        * | _AfterHours := "No" ;
+    }
+
+    // This is always critical -- risk score starts at 90
+    | _RiskScore := 90
+    | case {
+        _AfterHours="Yes" | _RiskScore := 100 ;
+        * ;
+    }
+
+    | table([
+        _TimestampET,
+        github.actor,
+        github.actor_email,
+        github.sender_category,
+        github.organization,
+        github.repository,
+        _AfterHours,
+        github.is_risky_operation,
+        _RiskScore
+    ])
+    | sort(_RiskScore, order=desc)
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+dependencies:
+  - saved_search.github_enrich_event_context
+  - saved_search.github_classify_sender_type
+  - saved_search.github_flag_risky_operations

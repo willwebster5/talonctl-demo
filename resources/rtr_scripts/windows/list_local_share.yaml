@@ -1,0 +1,8 @@
+name: list_local_share
+description: |
+  Lists local SMB shares and their paths.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_local_share.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

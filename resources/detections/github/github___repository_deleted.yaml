@@ -1,0 +1,74 @@
+resource_id: github___repository_deleted
+name: GitHub - Repository Deleted
+rule_id: 019d2fcc0af278f9800b0c5913df3a40
+description: |
+  Detects when a GitHub repository is deleted. Repository deletion is irreversible
+  (without backup) and high-impact. This should never happen without prior approval
+  and could indicate a compromised account or insider threat.
+
+  Risk: Permanent code loss, service disruption, intellectual property destruction
+  Response: Verify deletion was authorized, check for backup availability,
+           review actor's recent activity for signs of compromise
+
+severity: 70
+status: inactive
+mitre_attack: ["TA0040:T1485"]
+search:
+  filter: |
+    source_type=github
+    | Vendor.action="deleted"
+
+    // Apply enrichment functions
+    | $github_enrich_event_context()
+    | $github_classify_sender_type()
+    | $github_flag_risky_operations()
+
+    // Filter to human actors -- bot/automation repo cleanup is unusual but possible
+    | github.sender_category != "bot"
+
+    // Format timestamp
+    | _TimestampET := formatTime("%Y-%m-%d %H:%M:%S ET", field=@timestamp, timezone="America/New_York")
+
+    // After-hours flag
+    | case {
+        test(github.event_hour >= 22) | _AfterHours := "Yes" ;
+        test(github.event_hour <= 6) | _AfterHours := "Yes" ;
+        * | _AfterHours := "No" ;
+    }
+
+    // Risk scoring
+    | case {
+        github.repo_visibility="public" | _RiskScore := 90 ;
+        github.repo_visibility="private" | _RiskScore := 80 ;
+        * | _RiskScore := 80 ;
+    }
+    | case {
+        _AfterHours="Yes" | _RiskScore := _RiskScore + 10 ;
+        * ;
+    }
+
+    | table([
+        _TimestampET,
+        github.actor,
+        github.actor_email,
+        github.sender_category,
+        github.organization,
+        github.repository,
+        github.repo_visibility,
+        _AfterHours,
+        github.is_risky_operation,
+        _RiskScore
+    ])
+    | sort(_RiskScore, order=desc)
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+dependencies:
+  - saved_search.github_enrich_event_context
+  - saved_search.github_classify_sender_type
+  - saved_search.github_flag_risky_operations

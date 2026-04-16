@@ -1,0 +1,8 @@
+name: full_triage
+description: |
+  Comprehensive host triage — collects web history, registry hives, jump lists, event logs via Volume Shadow Copy.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/full_triage.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

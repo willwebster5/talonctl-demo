@@ -1,0 +1,63 @@
+resource_id: crowdstrike_endpoint_axios_supply_chain_c2_dns_request
+name: "CrowdStrike - Endpoint - Axios Supply Chain C2 DNS Request to sfrclak.com"
+rule_id: 019d4bb454977b05ab4dc5b3126cae68
+description: |
+  Detects DNS queries to sfrclak.com, the command-and-control server used in the
+  axios npm supply chain attack disclosed 2026-03-30. Malicious axios versions
+  1.14.1 and 0.30.4 inject plain-crypto-js@4.2.1 via a postinstall dropper that
+  beacons to sfrclak.com:8000 to download a second-stage cross-platform RAT.
+
+  A hit here means a host in the environment installed an affected axios version
+  and the postinstall dropper executed. Treat as confirmed compromise until proven
+  otherwise.
+
+  Investigation:
+  1. Identify the host and user — contain immediately via CrowdStrike RTR if production
+  2. Check for RAT artifacts: /tmp/ld.py (Linux), /Library/Caches/com.apple.act.mond (macOS), %PROGRAMDATA%\wt.exe (Windows)
+  3. Review npm install history in ~/.npm/_logs or CI build logs for axios 1.14.1 / 0.30.4
+  4. Check running processes for python /tmp/ld.py or wt.exe from ProgramData
+  5. Rotate credentials accessible from the host (env vars, ~/.npmrc tokens, CI secrets)
+  6. Remove plain-crypto-js from node_modules and downgrade axios to 1.14.0 or 0.30.3
+  7. Review CrowdStrike process tree for any commands executed by the RAT
+
+  IOCs: sfrclak.com:8000 (C2), plain-crypto-js@4.2.1 (malicious dep)
+  Affected: axios@1.14.1, axios@0.30.4 (published 2026-03-30 23:59 UTC)
+  RAT drops: /tmp/ld.py (Linux), /Library/Caches/com.apple.act.mond (macOS), %PROGRAMDATA%\wt.exe (Windows)
+  Ref: https://thehackernews.com/2026/03/axios-supply-chain-attack-pushes-cross.html
+
+severity: 90
+status: active
+mitre_attack: ["Command and Control (TA0011):Application Layer Protocol (T1071)"]
+
+search:
+  filter: |
+    case {
+      #repo="base_sensor" #event_simpleName="DnsRequest"
+      | _domain := DomainName
+      | host.name := ComputerName
+      | _source_ip := LocalAddressIP4
+      | _vendor := "crowdstrike"
+      ;
+      // If using a different log source, map the appropriate fields to _domain, host.name, and _source_ip
+      #Vendor="<zscaler|cato|palo_alto_networks>" event_simpleNameEquivalent="dns_request"
+      | _domain := dns.question.name
+      | host.name := source.host.name
+      | _vendor := "<zscaler|cato|palo_alto_networks>"
+      ;
+    }
+    | _domain =~ /sfrclak\.com/i
+    | groupBy([host.name, _domain, _vendor], limit=10000,
+        function=[
+          collect([_source_ip]),
+          count(as=hit_count)
+        ]
+      )
+
+  lookback: "1h10m"
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: false
+
+operation:
+  schedule:
+    definition: '@every 1h'

@@ -1,0 +1,106 @@
+resource_id: github___protected_branch_deleted
+name: GitHub - Protected Branch Deleted
+description: |
+  Detects deletion of protected branches (main, staging, master). Deleting a protected
+  branch can result in significant code loss and disruption. This could indicate
+  a compromised account, insider threat, or accidental destructive action.
+
+  Risk: Code destruction, service disruption, data loss
+  Response: Investigate who deleted the branch, restore from backup if needed,
+           review account security
+
+  # ── TUNED QUERY v1 ────────────────────────────────────────────────────────────
+  # Changes from original:
+  #   1. Fixed protected branch regex: exact match ^(main|staging|master)$ instead
+  #      of suffix match to eliminate FP from feature branches like PT-1134-*_main
+  #   2. Added service account filtering (exclude bots/automation)
+  #   3. Added analyst-ready table with risk classification
+  #   4. Added after-hours detection flag
+  #   5. Added branch risk tier (Production vs Pre-Production)
+  # ───────────────────────────────────────────────────────────────────────────────
+
+severity: 70
+status: active
+mitre_attack: ["TA0040:T1485"]
+search:
+  filter: |
+    source_type=github
+    | Vendor.deleted="true"
+    | Vendor.ref=*
+    | regex("refs/heads/(?<_BranchName>.+)", field=Vendor.ref)
+
+    // Exact match on protected branch names only — prevents FP from
+    // feature branches like "PT-1134-description_main" that end with _main
+    | _BranchName=/^(main|staging|master)$/
+
+    // Apply enrichment functions
+    | $github_enrich_event_context()
+    | $github_classify_sender_type()
+
+    // Filter to human actors only if bot branch cleanup is expected(Not expected at RR)
+    // | github.is_human_actor=true
+
+    // Format timestamp for readability (ET)
+    | _TimestampET := formatTime("%Y-%m-%d %H:%M:%S ET", field=@timestamp, timezone="America/New_York")
+
+    // Classify branch risk tier
+    | case {
+        _BranchName="main"    | _BranchRisk := "Production"     | _RiskScore := 90 ;
+        _BranchName="master"  | _BranchRisk := "Production"     | _RiskScore := 90 ;
+        _BranchName="staging" | _BranchRisk := "Pre-Production" | _RiskScore := 70 ;
+        *                     | _BranchRisk := "Unknown"         | _RiskScore := 70 ;
+    }
+
+    // After-hours detection (before 7am or after 7pm ET)
+    // formatTime %H gives zero-padded strings, so string comparison works correctly
+    | _EventHourET := formatTime("%H", field=@timestamp, timezone="America/New_York")
+    | case {
+        test(_EventHourET < "07") | _AfterHours := "Yes" | _RiskScore := _RiskScore + 10 ;
+        test(_EventHourET > "19") | _AfterHours := "Yes" | _RiskScore := _RiskScore + 10 ;
+        *                         | _AfterHours := "No" ;
+    }
+
+    // Build compare link for investigation
+    | _CompareLink := Vendor.compare
+
+    // Analyst-ready table output
+    | table([
+        _TimestampET,
+        github.actor,
+        github.actor_email,
+        github.sender_category,
+        github.organization,
+        github.repository,
+        _BranchName,
+        _BranchRisk,
+        github.default_branch,
+        github.repo_visibility,
+        _AfterHours,
+        _CompareLink,
+        _RiskScore
+    ])
+    | rename([[_TimestampET, "Timestamp (ET)"],
+              [github.actor, "Actor"],
+              [github.actor_email, "Actor Email"],
+              [github.sender_category, "Sender Type"],
+              [github.organization, "Organization"],
+              [github.repository, "Repository"],
+              [_BranchName, "Deleted Branch"],
+              [_BranchRisk, "Branch Risk Tier"],
+              [github.default_branch, "Default Branch"],
+              [github.repo_visibility, "Repo Visibility"],
+              [_AfterHours, "After Hours"],
+              [_CompareLink, "Compare Link"],
+              [_RiskScore, "Risk Score"]])
+    | sort("Risk Score", order=desc)
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+dependencies:
+  - saved_search.github_enrich_event_context
+  - saved_search.github_classify_sender_type

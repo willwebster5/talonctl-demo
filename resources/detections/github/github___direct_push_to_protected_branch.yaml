@@ -1,0 +1,144 @@
+resource_id: github___direct_push_to_protected_branch
+name: GitHub - Direct Push to Protected Branch Bypassing Merge Queue
+description: |
+  Detects when a human user pushes directly to a protected branch (main, staging, master)
+  without going through the merge queue. This bypasses code review controls and could
+  introduce unreviewed or malicious code into production branches.
+
+  Risk: Bypassed code review, unvetted code in production, policy violation
+  Response: Review the pushed commits, verify with developer, consider reverting
+           if code review was required
+
+severity: 50
+status: active
+mitre_attack: ["TA0005:T1562"]
+metadata:
+  created: 2025-12-17
+  last_tuned: 2026-03-26
+  tune_count: 1
+  confidence: medium
+
+ads:
+  goal: "Detect human pushes directly to protected branches (main/staging/master) that bypass the merge queue and code review controls."
+  mitre_attack:
+    - "Defense Evasion / Impair Defenses"
+  strategy_abstract: |
+    Filters GitHub audit events on protected branches (main, staging, master)
+    with Vendor.sender.type=User, enriches via $github_enrich_event_context()
+    and $github_classify_sender_type(), and excludes bot senders plus the
+    curated exclusion list. Suppresses known release-merge patterns via
+    commit-message regex (Merge pull request #N, Merge branch, squash (#N),
+    Release YYYY-MM-DD), then scores residual events by branch risk,
+    operation type, branch mismatch, and after-hours flags.
+  blind_spots:
+    - "Commit-message-based merge classification is bypassable — a crafted commit message matching the release regex will be suppressed regardless of actual origin"
+    - "Force pushes are scored as high risk here but aren't tuned out — coverage of force-push-specific scenarios lives in a sibling detection, not this one"
+    - "Bot classification depends on $github_classify_sender_type() — machine accounts registered as GitHub Users without a bot category set will slip through (this was the 2026-03-26 tune that added the sender_category != bot filter)"
+  priority_rationale: "Medium (50) — bypassing merge queue is a policy violation with real blast radius but not a direct compromise indicator; legitimate cherry-picks by admins are the expected TP class."
+  fp_patterns_ref: "knowledge/patterns/github.md#direct-push-to-protected-branch-detection-correctly-tuned"
+  response_ref: "playbooks/github-audit.md#common-fp-patterns"
+
+search:
+  filter: |
+    source_type=github
+    | Vendor.created="false"
+    | Vendor.deleted="false"
+    | Vendor.forced="false"
+    | Vendor.sender.type="User"
+    | Vendor.ref=*
+    | Vendor.ref!=/gh-readonly-queue/
+    | regex("refs/heads/(?<github.branch>.+)", field=Vendor.ref)
+    | github.branch=/^(main|staging|master)$/
+    // Apply enrichment functions
+    | $github_enrich_event_context()
+    | $github_classify_sender_type()
+    | github.sender_category != "bot"
+
+    // Filter out bots/automation that sender_category misses
+    | $github_apply_exclusions()
+    | IsExcluded=false
+
+    // Identify expected push patterns (PR merges, branch syncs, squash merges, release tags)
+    | case {
+        Vendor.head_commit.message=/Merge pull request #\d+ from/
+            | _IsReleaseMerge := "true" ;
+        Vendor.head_commit.message=/^Merge branch '.+' into/
+            | _IsReleaseMerge := "true" ;
+        Vendor.head_commit.message=/\(#\d+\)/
+            | _IsReleaseMerge := "true" ;
+        Vendor.head_commit.message=/^Release \d{4}-\d{2}-\d{2}/
+            | _IsReleaseMerge := "true" ;
+        * | _IsReleaseMerge := "false" ;
+    }
+
+    // Filter out expected release events
+    | _IsReleaseMerge != "true"
+
+    // Format timestamp for readability
+    | _TimestampEST := formatTime("%Y-%m-%d %H:%M:%S", field=@timestamp, timezone="America/New_York")
+
+    // Classify branch risk
+    | case {
+        github.branch="master" | _BranchRisk := "Production" | _RiskScore := 80 ;
+        github.branch="main" | _BranchRisk := "Production" | _RiskScore := 80 ;
+        github.branch="staging" | _BranchRisk := "Pre-Production" | _RiskScore := 40 ;
+        * | _BranchRisk := "Unknown" | _RiskScore := 50 ;
+    }
+
+    // Classify operation type
+    | case {
+        github.operation_type="ForcePush" | _OpRisk := "High" | _RiskScore := 100 ;
+        github.operation_type="NormalPush" | _OpRisk := "Normal" ;
+        * | _OpRisk := "Review" ;
+    }
+
+    // Flag pushes to non-default branch
+    | case {
+        test(github.branch != github.default_branch) | _BranchMismatch := "Yes" ;
+        * | _BranchMismatch := "No" ;
+    }
+
+    // After-hours detection
+    | case {
+        test(github.event_hour >= 22) | _AfterHours := "Yes" ;
+        test(github.event_hour <= 6) | _AfterHours := "Yes" ;
+        * | _AfterHours := "No" ;
+    }
+
+    // Build summary of head commit
+    | _HeadCommitSummary := format("[%s] %s", field=[Vendor.head_commit.id, Vendor.head_commit.message])
+    | _CompareLink := Vendor.compare
+
+    | table([
+        _TimestampEST,
+        github.actor,
+        github.actor_email,
+        github.sender_category,
+        github.organization,
+        github.repository,
+        github.branch,
+        github.default_branch,
+        _BranchRisk,
+        _BranchMismatch,
+        github.operation_type,
+        _OpRisk,
+        _AfterHours,
+        github.is_protected_branch,
+        github.repo_visibility,
+        _HeadCommitSummary,
+        _CompareLink,
+        _RiskScore
+    ])
+    | sort(_RiskScore, order=desc)
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'
+dependencies:
+  - saved_search.github_enrich_event_context
+  - saved_search.github_classify_sender_type
+  - saved_search.github_apply_exclusions

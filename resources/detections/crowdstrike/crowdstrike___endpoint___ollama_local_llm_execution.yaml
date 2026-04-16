@@ -1,0 +1,30 @@
+resource_id: crowdstrike___endpoint___ollama_local_llm_execution
+name: CrowdStrike - Endpoint - Ollama Local LLM Execution
+rule_id: 019d419e4db57cf19141e9ef3b4ad72f
+description: |
+  Detects Ollama local LLM execution on corporate endpoints. Ollama enables
+  local AI model inference that bypasses all network-based AI monitoring controls.
+  Data processed locally leaves no network trace — only DNS to ollama.com for
+  model downloads and process execution telemetry are observable.
+
+  Matches on ImageFileName containing "ollama" with CommandLine filtering
+  for serve and runner processes to catch actual execution across macOS app
+  bundles (/Applications/Ollama.app/) and Homebrew installs (/opt/homebrew/).
+  Excludes incidental references like launcher apps running "which ollama".
+severity: 30
+status: active
+mitre_attack: ["TA0002:T1059"]
+search:
+  filter: |
+    #repo=base_sensor #event_simpleName=ProcessRollup2
+
+    | ImageFileName=*ollama*
+    | CommandLine=/(ollama\s+(serve|runner))/
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

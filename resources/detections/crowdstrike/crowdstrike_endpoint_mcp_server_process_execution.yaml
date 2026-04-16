@@ -1,0 +1,35 @@
+resource_id: crowdstrike_endpoint_mcp_server_process_execution
+name: CrowdStrike - Endpoint - MCP Server Process Execution
+rule_id: 019d6656b9c47c0da4ea8152eb7ba845
+description: |
+  Detects MCP (Model Context Protocol) server processes on corporate endpoints.
+  MCP servers grant AI agents access to filesystems, databases, APIs, credentials,
+  and arbitrary code execution. Stdio-based servers have zero network visibility.
+
+  Matches CommandLine patterns for npm (mcp-server, @modelcontextprotocol/),
+  Python (mcp_server), and generic MCP references across Mac and Windows.
+
+  Approved MCP servers: crowdstrike-mcp, @github/github-mcp-server.
+  Full approval list: approved_ai_tools.csv (category=mcp_server).
+severity: 30
+status: active
+mitre_attack: ["TA0002:T1059", "TA0002:T1204"]
+search:
+  filter: |
+    #repo=base_sensor #event_simpleName=ProcessRollup2
+    | CommandLine=/(mcp[-_]server|@modelcontextprotocol|model[-.]context[-.]protocol)/i
+
+    // Exclude git/GitLens processes — match "mcp" as repo path component, not actual server execution
+    | ImageFileName!=/\b(git|git-remote-https|gk)(\.exe)?$/i
+    // Exclude browser/open launching Claude Code OAuth — URL scope parameter contains "mcp_servers"
+    | not (CommandLine=/claude\.com.*oauth/)
+
+    | groupBy([aid, ComputerName, UserName, event_platform, ImageFileName, CommandLine])
+
+  lookback: 1h0m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

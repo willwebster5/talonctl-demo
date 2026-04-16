@@ -1,0 +1,8 @@
+name: terminated_user_handle
+description: |
+  Handles terminated user account cleanup — disables account, exports data, removes access.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/terminated_user_handle.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

@@ -1,0 +1,69 @@
+resource_id: crowdstrike_endpoint_axios_supply_chain_windows_rat_artifact
+name: "CrowdStrike - Endpoint - Axios Supply Chain Windows RAT Binary Written to ProgramData"
+rule_id: 019d4bb454e87b059eb1e8810b11541a
+description: |
+  Detects the creation or execution of %PROGRAMDATA%\wt.exe, the Windows-platform
+  RAT dropped by the axios supply chain attack (2026-03-30). The plain-crypto-js@4.2.1
+  postinstall dropper delivers a PowerShell RAT via VBScript written to the temp
+  directory and saves the compiled binary as wt.exe in ProgramData.
+
+  The filename wt.exe masquerades as Windows Terminal (the legitimate wt.exe lives
+  at C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_*\wt.exe). The false
+  positive rate for wt.exe in ProgramData should be near zero.
+
+  The RAT supports: command execution, file system enumeration, shell commands,
+  payload deployment, and self-termination. C2 is sfrclak.com:8000.
+
+  Investigation:
+  1. Contain the host via CrowdStrike RTR immediately
+  2. Check for file: dir %PROGRAMDATA%\wt.exe
+  3. Check SHA256 — legitimate Windows Terminal wt.exe will NOT be in ProgramData
+  4. Kill process if running, delete artifact
+  5. Check for VBScript temp files: dir %TEMP%\*.vbs
+  6. Review network connections for sfrclak.com:8000 egress
+  7. Identify triggering npm project and rotate all accessible credentials
+  8. Search for scheduled tasks or registry run keys for persistence
+
+  IOC: %PROGRAMDATA%\wt.exe — Windows RAT, masquerades as Windows Terminal
+  Legitimate wt.exe lives in WindowsApps\Microsoft.WindowsTerminal_* — NOT ProgramData
+  Delivery: PowerShell RAT via VBScript in %TEMP% from npm postinstall
+  C2: sfrclak.com:8000
+  Ref: https://thehackernews.com/2026/03/axios-supply-chain-attack-pushes-cross.html
+
+severity: 90
+status: active
+mitre_attack: ["Defense Evasion (TA0005):Masquerading: Match Legitimate Name or Location (T1036.005)"]
+
+search:
+  filter: |
+    #repo="base_sensor" #Vendor="crowdstrike"
+    | case {
+        // Executable written to ProgramData
+        in(#event_simpleName, values=["NewExecutableWritten", "PeFileWritten"])
+        | _path := TargetFileName
+        | _event_type := "file_written"
+        ;
+        // Process spawned from ProgramData\wt.exe
+        #event_simpleName="ProcessRollup2"
+        | _path := ImageFileName
+        | _event_type := "process_executed"
+      }
+    // Match wt.exe in ProgramData — NOT in the legitimate WindowsTerminal WindowsApps path
+    | _path =~ /\\ProgramData\\wt\.exe/i
+    | NOT _path =~ /WindowsApps\\Microsoft\.WindowsTerminal/i
+    | host.name := ComputerName
+    | groupBy([host.name, _event_type, _path], limit=10000,
+        function=[
+          collect([ParentBaseFileName, UserName, CommandLine, SHA256HashData]),
+          count(as=hit_count)
+        ]
+      )
+
+  lookback: "1h10m"
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: false
+
+operation:
+  schedule:
+    definition: '@every 1h'

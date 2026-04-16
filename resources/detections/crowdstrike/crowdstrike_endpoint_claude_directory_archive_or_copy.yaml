@@ -1,0 +1,39 @@
+resource_id: crowdstrike_endpoint_claude_directory_archive_or_copy
+name: CrowdStrike - Endpoint - Claude Directory Archive or Copy
+rule_id: 019d69cf4256766dad0185ca40b6343b
+description: |
+  Detects archive and copy commands targeting .claude/ paths — the staging step
+  before exfiltration.
+
+  Covers archive binaries (tar, zip, 7z, 7za, rar), copy binaries
+  (cp, xcopy, robocopy, scp, rsync), and PowerShell cmdlets
+  (Compress-Archive, Copy-Item).
+
+  scp and rsync overlap with the network exfil detection intentionally —
+  this rule catches local staging, the network rule catches remote transfers.
+severity: 50
+status: active
+mitre_attack:
+  - "Collection (TA0009):Archive Collected Data (T1560)"
+  - "Collection (TA0009):Data Staged (T1074)"
+
+search:
+  filter: |
+    #repo=base_sensor #event_simpleName=ProcessRollup2
+    | CommandLine=/\.claude/i
+    | FileName=/^(tar|zip|7z|7za|rar|cp|xcopy|robocopy|scp|rsync|powershell|pwsh)(\.exe)?$/i
+    | case {
+        // Native binaries
+        FileName=/^(tar|zip|7z|7za|rar|cp|xcopy|robocopy|scp|rsync)(\.exe)?$/i;
+        // PowerShell cmdlets
+        FileName=/^(powershell|pwsh)(\.exe)?$/i CommandLine=/\b(Compress-Archive|Copy-Item)\b/i;
+    }
+    | groupBy([aid, ComputerName, UserName, event_platform, ImageFileName, CommandLine, ParentBaseFileName])
+
+  lookback: 1h10m
+  trigger_mode: summary
+  outcome: detection
+  use_ingest_time: true
+operation:
+  schedule:
+    definition: '@every 1h0m'

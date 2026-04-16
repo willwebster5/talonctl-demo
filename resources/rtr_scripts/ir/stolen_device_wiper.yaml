@@ -1,0 +1,8 @@
+name: stolen_device_wiper
+description: |
+  Performs secure wipe of a stolen/compromised endpoint.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/stolen_device_wiper.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

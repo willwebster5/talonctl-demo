@@ -1,0 +1,8 @@
+name: get_current_user
+description: |
+  Gets the currently logged-in user with session details.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/get_current_user.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts

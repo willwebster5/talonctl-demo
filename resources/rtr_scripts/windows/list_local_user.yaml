@@ -1,0 +1,8 @@
+name: list_local_user
+description: |
+  Lists local user accounts with enabled/disabled status and last logon.
+platform:
+  - windows
+permission_type: public
+file_path: ./scripts/list_local_user.ps1
+comments_for_audit_log: Imported from crowdstrike-resources RTR_scripts
